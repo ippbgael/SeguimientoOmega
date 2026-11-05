@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Seguimiento OMEGA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Barra lateral fija + área de trabajo; en móvil, navegación inferior. Solo modo claro. */
+:root{
+  --bg:#F0ECE3; --surface:#F8F5EE; --sunken:#EAE5D9; --line:#E2DCCF;
+  --text:#2A2721; --muted:#756D5E; --muted3:#9A9280;
+  --accent:#1E6FE3; --accent-soft:#E1EAF8; --on-accent:#FFFFFF; --navy:#2B3D5B;
+  --danger:#B23A2E; --danger-bg:#F6DED8; --late:#9A5A10; --late-bg:#F9E8CF;
+  --pos:#1E6E52;
+  --e0-bg:#EAE5D9; --e0-fg:#5E574A; --e0-bar:#C9C1AF;
+  --e1-bg:#F7E9D2; --e1-fg:#7A4F0E; --e1-bar:#D9A04E;
+  --e2-bg:#DDE8F7; --e2-fg:#1F4E9C; --e2-bar:#4F86D9;
+  --e3-bg:#FBE1D3; --e3-fg:#A4431B; --e3-bar:#E07B4C;
+  --e4-bg:#DCF2E7; --e4-fg:#1E6E52; --e4-bar:#2E9E77;
+  --prog:#8C836F; --c-ali:#E07B4C; --c-ieq:#2B3D5B; --c-irv:#4F86D9;
+  --sh:7px 7px 16px rgba(140,128,100,.20),-6px -6px 14px rgba(255,255,255,.85);
+  --sh-sm:4px 4px 10px rgba(140,128,100,.18),-3px -3px 8px rgba(255,255,255,.8);
+  --sh-in:inset 3px 3px 7px rgba(140,128,100,.18),inset -3px -3px 6px rgba(255,255,255,.75);
+  --overlay:rgba(42,39,33,.32);
+  --f-display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --f-body:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --r:20px; --r-sm:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:14px;line-height:1.45}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:-.01em;text-wrap:balance;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-size:11px;letter-spacing:.02em}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.pos{color:var(--pos);font-weight:600}.neg{color:var(--danger);font-weight:600}
+
+.layout{display:flex;min-height:100%}
+.side{width:240px;flex-shrink:0;background:var(--surface);box-shadow:4px 0 20px rgba(0,0,0,.06);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:22px 14px 14px}
+.brand{padding:0 8px 22px}
+.logo{display:block;height:30px;width:auto}
+.brand b{display:block;font-family:var(--f-display);font-size:17px;font-weight:700;line-height:1.15;margin-top:14px}
+.brand span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted3);margin-top:4px}
+.nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:var(--r-sm);padding:10px 12px;text-align:left;font-weight:600;font-size:13.5px;color:var(--text)}
+.nav button:hover{background:var(--sunken)}
+.nav button[aria-current="page"]{background:var(--sunken);box-shadow:var(--sh-in)}
+.nav .ic{width:24px;height:24px;border-radius:8px;background:var(--sunken);color:var(--muted);display:grid;place-items:center;font-size:12px;flex-shrink:0}
+.nav button[aria-current="page"] .ic{background:var(--accent);color:var(--on-accent)}
+.nav .badge{margin-left:auto;font-size:11px;background:var(--late-bg);color:var(--late);border-radius:99px;padding:1px 8px}
+.me{display:flex;gap:10px;align-items:center;padding:12px 8px 0;border-top:1px solid var(--line)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.av.sm{width:24px;height:24px;font-size:9.5px}
+.me b{display:block;font-size:13px}.me span{font-size:11.5px;color:var(--muted)}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.05)}
+.top h1{font-size:22px}
+.top .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.top .tgrow{flex:1;min-width:200px}
+.top .mlogo{display:none;height:22px;width:auto}
+.demo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--e1-bg);color:var(--e1-fg);border-radius:99px;padding:4px 10px}
+.sel,.inp{background:var(--sunken);border:0;border-radius:var(--r-sm);padding:8px 12px;box-shadow:var(--sh-in);font-size:13px;min-width:0}
+.btn{border:0;border-radius:var(--r-sm);padding:9px 16px;font-weight:600;font-size:13px;background:var(--surface);box-shadow:var(--sh-sm);color:var(--text)}
+.btn:hover{box-shadow:var(--sh-in)}
+.btn.pri{background:var(--accent);color:var(--on-accent);box-shadow:none}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ok{background:var(--e4-bar);color:#fff;box-shadow:none}
+.btn.warn{background:var(--e3-bg);color:var(--e3-fg);box-shadow:none}
+.btn.ghost{background:transparent;box-shadow:none;color:var(--muted)}
+.btn.sm{padding:6px 12px;font-size:12px}
+
+.view{padding-block:24px 64px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px;max-width:1560px;width:100%}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;min-width:0}
+.card h2{font-size:15.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 small{font-family:var(--f-body);font-weight:500;font-size:12px;color:var(--muted);margin-left:auto}
+.grid{display:grid;gap:18px}
+.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.g2{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.g2e{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted3)}
+.kpi .v{font-family:var(--f-display);font-size:28px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:15px;color:var(--muted);font-weight:600}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+
+.bar{height:10px;border-radius:99px;background:var(--sunken);box-shadow:var(--sh-in);overflow:hidden;flex:1;position:relative}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.bar>b{position:absolute;top:0;bottom:0;width:2px;background:var(--text);opacity:.75}
+.stack{display:flex;gap:2px;height:14px;border-radius:4px;overflow:hidden;background:var(--sunken);flex:1}
+.stack>i{display:block;height:100%}
+.row{display:flex;align-items:center;gap:12px}
+.rows{display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:13px;font-weight:600;min-width:0}
+.lbl small{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.clkrow{border:0;background:transparent;width:100%;text-align:left;padding:4px 6px;border-radius:10px}
+.clkrow:hover{background:var(--sunken)}
+
+/* Gráficos de barras */
+.vplot{position:relative;height:210px}
+.vin{position:absolute;left:38px;right:4px;top:22px;bottom:0;border-bottom:1px solid var(--muted3)}
+.vg{position:absolute;left:0;right:0;border-top:1px dashed var(--line)}
+.vg span{position:absolute;left:-38px;top:-8px;width:32px;text-align:right;font-size:10.5px;color:var(--muted3)}
+.vgrps{position:absolute;inset:0;display:flex;gap:16px;align-items:flex-end}
+.vgrp{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:2px;height:100%}
+.vgrp.dim{opacity:.4}
+.vbar{width:min(36px,42%);border-radius:4px 4px 0 0;position:relative}
+.vbar span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding-bottom:3px;white-space:nowrap;color:var(--text)}
+.vlbls{display:flex;gap:16px;margin:8px 4px 0 38px}
+.vlbls div{flex:1;text-align:center;font-size:12px;font-weight:600;min-width:0}
+.vlbls small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.hb{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr) 34px;gap:10px;align-items:center}
+.hb .track{height:16px;background:var(--sunken);border-radius:4px;overflow:hidden}
+.hb .track i{display:block;height:100%;border-radius:0 4px 4px 0}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:99px;padding:3px 10px;white-space:nowrap}
+.e0{background:var(--e0-bg);color:var(--e0-fg)}.e1{background:var(--e1-bg);color:var(--e1-fg)}.e2{background:var(--e2-bg);color:var(--e2-fg)}.e3{background:var(--e3-bg);color:var(--e3-fg)}.e4{background:var(--e4-bg);color:var(--e4-fg)}
+.st-b{background:var(--danger-bg);color:var(--danger)}.st-l{background:var(--late-bg);color:var(--late)}.ok{background:var(--accent-soft);color:var(--accent)}
+
+.alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-sm);background:var(--sunken);border:0;text-align:left;width:100%}
+.alert:hover{box-shadow:var(--sh-in)}
+.alert .t{font-size:13px;font-weight:600}
+.alert .m{font-size:12px;color:var(--muted)}
+.feed{display:flex;flex-direction:column;gap:12px}
+.feed .it{display:flex;gap:10px}
+.feed .it p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--sunken);border-radius:var(--r-sm);padding:3px;box-shadow:var(--sh-in)}
+.seg button{border:0;background:transparent;border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--sh-sm)}
+.summary{font-size:13px;background:var(--surface);border-radius:var(--r-sm);padding:10px 14px;box-shadow:var(--sh-sm)}
+
+.tblwrap{overflow-x:auto;border-radius:var(--r);box-shadow:var(--sh);background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted3);padding:12px 10px;background:var(--sunken);white-space:nowrap;position:sticky;top:0}
+td{padding:9px 10px;border-top:1px solid var(--line);vertical-align:middle}
+tr.clk:hover td{background:var(--sunken)}
+.pname{font-weight:600;max-width:280px;border:0;background:transparent;padding:0;text-align:left}
+.pname .mono{display:block;color:var(--muted3);font-weight:500;margin-top:2px}
+.cells{display:flex;gap:4px}
+.cell{border:0;border-radius:8px;min-width:46px;padding:5px 6px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}
+.cell.venc{box-shadow:inset 0 0 0 2px var(--danger)}
+.cell.vrev{box-shadow:inset 0 0 0 2px var(--late)}
+.cell:hover{filter:brightness(.95)}
+
+.gantt{position:relative;min-width:980px}
+.gh{display:grid;grid-template-columns:260px 1fr;font-size:11px;color:var(--muted3)}
+.gscale{position:relative;height:22px}
+.gscale span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.grow{display:grid;grid-template-columns:260px 1fr;align-items:center;min-height:38px;border-top:1px solid var(--line)}
+.grow .gl{font-size:12.5px;padding-right:12px;min-width:0}
+.grow .gl b{display:block;font-size:13px}
+.gtrack{position:relative;height:100%;min-height:38px}
+.gbar{position:absolute;top:50%;transform:translateY(-50%);height:16px;border-radius:99px;background:var(--sunken);overflow:hidden;box-shadow:var(--sh-in)}
+.gbar>i{display:block;height:100%}
+.gseg{position:absolute;top:50%;transform:translateY(-50%);height:12px;border-radius:4px}
+.gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);opacity:.7;z-index:1}
+.gsub .gl{padding-left:22px;font-weight:500}
+.caret{border:0;background:transparent;color:var(--muted);padding:0 6px 0 0;font-size:10px}
+
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+.pc{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:16px 18px;display:flex;flex-direction:column;gap:10px;border:0;text-align:left;width:100%}
+.pc h3{font-size:15px;line-height:1.3}
+.todo{font-size:12px;color:var(--late);display:flex;flex-direction:column;gap:2px}
+
+.rvcard{display:flex;flex-direction:column;gap:10px}
+.rvcard .hd{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+
+/* Mapa de procesos */
+.mapwrap{overflow:auto;border-radius:var(--r);background:var(--surface);box-shadow:var(--sh);padding:12px;max-height:72vh}
+.mapwrap svg{display:block}
+.mnode{cursor:pointer}
+.mnode:hover rect{fill:var(--sunken)}
+.rel{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border-radius:12px;padding:8px 10px}
+.rel .relp{border:0;background:transparent;padding:0;text-align:left;font-size:13px;font-weight:600;flex:1;min-width:160px}
+.rel .relp small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+
+.drawer-bg{position:fixed;inset:0;background:var(--overlay);z-index:30}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(580px,100%);background:var(--surface);z-index:31;display:flex;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.15);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dh{padding:20px 22px 14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dh h2{font-size:19px;line-height:1.25;margin-top:6px}
+.dbody{flex:1;overflow-y:auto;padding:16px 22px 28px;display:flex;flex-direction:column;gap:16px}
+.dbody>*{flex-shrink:0}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta div{background:var(--sunken);border-radius:var(--r-sm);padding:9px 12px;min-width:0}
+.meta small{display:block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted3)}
+.meta b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.sect{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sect span{font-weight:500;letter-spacing:0;text-transform:none}
+.sect .btn{margin-left:auto;text-transform:none;letter-spacing:0}
+.doc{border-radius:14px;background:var(--bg);overflow:hidden}
+.doc>button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:11px 12px;text-align:left;flex-wrap:wrap}
+.doc>button:hover{background:var(--sunken)}
+.doc .dn{flex:1;min-width:170px;font-size:13px;font-weight:600}
+.doc .dn small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.ed{padding:10px 12px 14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+.ed label,.flbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted3);display:block;margin-bottom:5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ed .inp,.fw{width:100%}
+textarea.inp{resize:vertical;min-height:54px}
+textarea.big{min-height:120px}
+.hist{display:flex;flex-direction:column;gap:10px}
+.hist .h{display:flex;gap:10px;font-size:12.5px}
+.hist .h p{margin:2px 0 0;color:var(--muted);white-space:pre-line}
+.note{font-size:12px;color:var(--muted);background:var(--sunken);border-radius:var(--r-sm);padding:10px 12px}
+.note.warn{background:var(--e3-bg);color:var(--e3-fg)}
+.note.bad{background:var(--danger-bg);color:var(--danger)}
+.note.info{background:var(--e2-bg);color:var(--e2-fg)}
+.ses{display:flex;flex-direction:column;gap:8px;background:var(--bg);border-radius:14px;padding:10px 12px}
+.ses .sh{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ses .sn{flex:1;min-width:150px;font-size:13px;font-weight:600}
+.ses .sn small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.cks{display:flex;gap:5px;flex-wrap:wrap}
+.ck{border:0;border-radius:8px;padding:5px 9px;font-size:11.5px;font-weight:600;background:var(--sunken);color:var(--muted)}
+.ck[aria-pressed="true"]{background:var(--e4-bg);color:var(--e4-fg)}
+.tog{display:flex;align-items:center;gap:10px;border:0;background:var(--sunken);border-radius:var(--r-sm);padding:9px 12px;font-size:13px;font-weight:600;width:100%;text-align:left}
+.tog i{width:34px;height:20px;border-radius:99px;background:var(--e0-bar);position:relative;flex-shrink:0}
+.tog i::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--surface);transition:left .15s}
+.tog[aria-pressed="true"] i{background:var(--accent)}
+.tog[aria-pressed="true"] i::after{left:17px}
+
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:14px;font-weight:600;font-size:13px;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+.mnav{display:none}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:13px}
+
+@media (max-width:1300px){.g6{grid-template-columns:repeat(3,minmax(0,1fr))}.g2,.g2e{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+  .side{display:none}
+  .top .mlogo{display:block}
+  .top,.view{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .view{padding-bottom:110px}
+  .g6{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .v{font-size:22px}
+  .vgrps,.vlbls{gap:6px}
+  .hb{grid-template-columns:minmax(0,120px) minmax(0,1fr) 28px}
+  .mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+  .mnav button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:600;color:var(--muted);padding:6px 2px;min-width:0}
+  .mnav button[aria-current="page"]{color:var(--accent)}
+  .mnav .ic{font-size:15px}
+  .meta,.two,.three{grid-template-columns:1fr}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app"></div>
+
+<script>
+/* Sin datos: todo se lee desde SharePoint (ver conexion.js). */
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"></script>
+<script src="conexion.js"></script>
+<script>
+(function(){
+'use strict';
+/* ---------- Logo IPPB (vector) ---------- */
+const LOGO=c=>`<svg class="${c}" viewBox="0 0 374 112" role="img" aria-label="IPPB"><path d="M14 2 24 12 14 22 4 12Z" fill="#1E6FE3"/><rect x="6" y="34" width="16" height="76" rx="2" fill="#2B3D5B"/><g fill="none" stroke-width="16" stroke-linejoin="round"><path d="M56 110V56M48 42H142V78H64" stroke="#1E6FE3"/><path d="M166 110V56M158 42H252V78H174" stroke="#2B3D5B"/><path d="M350 42H284V102H366V70H292" stroke="#2B3D5B"/></g></svg>`;
+
+/* ---------- Catálogos ---------- */
+const FASES=['AS IS','TO BE y BPMN','Documentación funcional','Validación y cierre'];
+const FCORTA=['AS IS','TO BE','Funcional','Validación'];
+const ENTS=[
+  {k:'ficha',f:0,l:'Ficha AS IS',s:'Ficha'},
+  {k:'mhal',f:0,l:'Matriz de hallazgos',s:'Hallaz.'},
+  {k:'bpmn',f:1,l:'Diagrama BPMN (Signavio .bpmn + HTML)',s:'BPMN'},
+  {k:'desc',f:1,l:'Documento de procedimientos TO BE',s:'Proced.'},
+  {k:'mcon',f:2,l:'Matriz de consideraciones',s:'Consid.'},
+  {k:'mreq',f:2,l:'Matriz de requerimientos',s:'Requer.'},
+  {k:'aval',f:3,l:'Acta de validación funcional',s:'Acta VF'}];
+const ENT=Object.fromEntries(ENTS.map(t=>[t.k,t]));
+// Estados del entregable (RF-02). El % por estado es una regla propuesta, por confirmar con Jenny.
+const ST=[{l:'Sin iniciar',c:'e0',p:0},{l:'En elaboración',c:'e1',p:40},{l:'En revisión',c:'e2',p:85},{l:'Observado',c:'e3',p:70},{l:'Finalizado',c:'e4',p:100}];
+// Motivos de desvío y de quién depende cada uno por defecto (se puede cambiar al registrarlo).
+const MOTIVOS=[
+  {m:'Falta BAE',d:'Alicorp'},
+  {m:'Falta de usuarios clave / otro rol',d:'Alicorp'},
+  {m:'Falta de acceso a herramientas',d:'Alicorp'},
+  {m:'Reprogramación de calendario',d:'Alicorp'},
+  {m:'Ajuste por validación',d:'IPPB'},
+  {m:'Otro',d:'IPPB'}];
+const MDEP=Object.fromEntries(MOTIVOS.map(x=>[x.m,x.d]));
+const DEPS=['Alicorp','IPPB'];
+// Responsable de un proceso atrasado.
+const CAUSAS={alicorp:{l:'Alicorp',c:'var(--c-ali)'},ippb_eq:{l:'IPPB · consultores',c:'var(--c-ieq)'},ippb_rev:{l:'IPPB · revisión',c:'var(--c-irv)'},sin:{l:'Sin justificar',c:'var(--danger)'}};
+const SES={asis:'Taller AS IS',tobe:'Taller TO BE',rev:'Revisión y coordinación',val:'Validación funcional',otra:'Otra reunión'};
+const SESK={pend:{l:'Pendiente',c:'var(--late)'},venc:{l:'Vencida',c:'var(--danger)'},ok:{l:'Completada a tiempo',c:'var(--e4-bar)'},tarde:{l:'Completada fuera de plazo',c:'var(--e3-bar)'}};
+const ROLES=['Líder de Procesos','PM','Consultor','Solo lectura'];
+const USERS0=[
+  {id:'jenny.perez',nombre:'Jenny Pérez',rol:'Líder de Procesos',eq:0},
+  {id:'ivan.montano',nombre:'Ivan Montaño',rol:'PM',eq:0},
+  {id:'karen.rueda',nombre:'Karen Rueda',rol:'Consultor',eq:1},
+  {id:'efrain.mamani',nombre:'Efrain Mamani',rol:'Consultor',eq:1},
+  {id:'vanessa.saavedra',nombre:'Vanessa Saavedra',rol:'Consultor',eq:2},
+  {id:'senta.valdivia',nombre:'Senta Valdivia',rol:'Consultor',eq:2},
+  {id:'alan.yujra',nombre:'Alan Yujra',rol:'Consultor',eq:3},
+  {id:'gael.alvis',nombre:'Gael Alvis',rol:'Consultor',eq:3,admin:true}];
+// actaMin: minutos tras el fin de la sesión para tener correo + actas. revDias: días para revisar un entregable.
+const CFG0={pmRevisa:false,actaMin:90,revDias:2,actasDesde:'2026-11-04',horaDef:'18:00'};
+const KEY='omega_seg_v4';
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+/* ---------- Utilidades ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const HOY=iso(new Date());
+const dt=s=>new Date(s+'T12:00:00');
+const addD=(s,n)=>{const x=dt(s);x.setDate(x.getDate()+n);return iso(x)};
+const fmt=s=>{if(!s)return '—';const x=dt(s);return x.getDate()+' '+MES[x.getMonth()]};
+const dmy=s=>{if(!s)return '';const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]};
+const dias=(a,b)=>Math.round((dt(b)-dt(a))/864e5);
+const ini=n=>String(n||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const avg=a=>a.length?Math.round(a.reduce((n,x)=>n+x,0)/a.length):0;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const mx=(a,b)=>a>b?a:b;
+const hhmm=ts=>{const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const fmtTs=ts=>fmt(iso(new Date(ts)))+' '+hhmm(ts);
+const durTxt=ms=>{const m=Math.max(0,Math.round(ms/60000));if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;if(h<48)return h+' h'+(r?' '+r+' min':'');const d=Math.floor(h/24);return d+' d'+(h%24?' '+h%24+' h':'')};
+const plural=(n,s,p)=>n+' '+(n===1?s:(p||s+'s'));
+
+/* ---------- Datos ---------- */
+// Procesos del maestro + fechas del cronograma. Todo arranca en "Sin iniciar": no hay avances inventados.
+function seed(){
+  const E={},S={};
+  const P=window.SEED_PROCESOS.map(p=>{
+    ENTS.forEach(t=>E[p.id+':'+t.k]={e:0,link:'',ver:0,fc:'',fc1:'',por:'',obs:''});
+    S[p.id]=(p.ses||[]).map((s,i)=>({id:p.id+'-'+i,t:s.t,f:s.f,h:'',correo:false,actaI:false,actaP:false,link:'',done:0}));
+    const {ses,...r}=p;return r});
+  return {users:USERS0.map(u=>({...u})),P,SP:window.SEED_SPRINTS,E,ses:S,desv:[],rel:[],log:[],cfg:{...CFG0}};
+}
+function norm(s){s.cfg={...CFG0,...(s.cfg||{})};s.rel=s.rel||[];s.desv=s.desv||[];s.log=s.log||[];s.ses=s.ses||{};s.users.forEach(u=>{if(u.admin===undefined){const z=USERS0.find(y=>y.id===u.id);u.admin=!!(z&&z.admin)}});return s}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.E&&s.P&&s.users)return norm(s)}catch(e){}return seed()}
+// MODE 'demo': datos en el navegador (localStorage). MODE 'sp': datos en SharePoint vía conexion.js.
+let MODE='demo';
+function persist(){if(MODE==='sp'){if(window.OMEGA_SP)window.OMEGA_SP.schedule(D)}else{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}}
+let D=null;
+let curSp=1;
+const UI={as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fdep:'all',teq:'all',tsp:'1',tini:'ini',meq:'all',msp:'all',
+  exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',rvT:{},
+  inv:{nombre:'',id:'',rol:'Consultor',eq:'1'},ren:null,toast:'',confirmReset:false,anOpen:false,sync:{k:'ok',msg:''},fold:{},up:null};
+function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);render()}
+
+/* ---------- Derivados ---------- */
+const user=id=>D.users.find(u=>u.id===id);
+const uName=id=>{const u=user(id);return u?u.nombre:(id||'—')};
+const first=id=>uName(id).split(' ')[0];
+const lider=()=>D.users.find(u=>u.rol==='Líder de Procesos')||{id:'',nombre:'Líder de Procesos'};
+const team=n=>D.users.filter(u=>u.rol==='Consultor'&&u.eq==n);
+const teamName=n=>{const t=team(n);return t.length?t.map(u=>u.nombre.split(' ')[0]).join(' y '):'sin consultores'};
+const proc=id=>D.P.find(p=>p.id==id);
+const E=(pid,k)=>D.E[pid+':'+k];
+function setAs(id){const u=user(id)||(MODE==='demo'&&(user('jenny.perez')||D.users[0]));if(!u)return;UI.as=u.id;UI.rol=u.rol;if(MODE==='demo')try{localStorage.setItem(KEY+'_as',u.id)}catch(e){}}
+function startDemo(){MODE='demo';let as=null;try{as=localStorage.getItem(KEY+'_as')}catch(e){}start(load(),as)}
+const meU=()=>user(UI.as)||{};
+const isLider=()=>UI.rol==='Líder de Procesos';
+const canWork=p=>isLider()||(UI.rol==='Consultor'&&meU().eq==p.equipo);
+const canReview=()=>isLider()||(UI.rol==='PM'&&D.cfg.pmRevisa);
+const canRel=()=>isLider()||UI.rol==='Consultor';
+// Administrador (soporte de la plataforma): puede revertir cargas, relaciones, desvíos y sesiones. La Líder también.
+const isAdmin=()=>isLider()||!!meU().admin;
+const relBtns=r=>`${isAdmin()&&r.est!=='Confirmado'?`<button class="btn sm" data-a="relOk" data-id="${r.id}">Confirmar</button>`:''}${isAdmin()&&r.est==='Confirmado'?`<button class="btn sm ghost" data-a="relUn" data-id="${r.id}">↶ Volver a por confirmar</button>`:''}${isAdmin()||r.autor===UI.as?`<button class="btn sm ghost" data-a="relDel" data-id="${r.id}" style="color:var(--danger)">Quitar</button>`:''}`;
+
+// Avance programado (propuesta): lineal por días dentro de cada fase del cronograma.
+function lin(a,b){if(!a||!b||HOY<a)return 0;if(HOY>=b)return 100;return Math.round((dias(a,HOY)+1)/(dias(a,b)+1)*100)}
+// venc = atraso del equipo (no entregó a tiempo). vrev = entregado, pero la revisión pasó su plazo (atraso de IPPB · revisión).
+function eInfo(p,t){const x=E(p.id,t.k);const f=p.fases[t.f]||{};
+  const prv=x.e===2&&x.fc?mx(f.rev||f.fin||x.fc,addD(x.fc,+D.cfg.revDias||0)):'';
+  return {t,x,f,exp:lin(f.ini,f.fin),prv,
+    venc:!!f.fin&&f.fin<HOY&&[0,1,3].includes(x.e),
+    vrev:!!prv&&prv<HOY,
+    tarde:!!(x.fc1&&f.fin&&x.fc1>f.fin)}}
+function quienE(p,x){return x.e===2?first(lider().id)+' · revisando':x.e===4?'—':x.e===3?'Devuelto a Equipo '+p.equipo+' · '+teamName(p.equipo):'Equipo '+p.equipo+' · '+teamName(p.equipo)}
+// Actas: pendiente → vencida al pasar el plazo; al completarse queda "a tiempo" o "fuera de plazo" con su demora.
+function sPlazo(s){return new Date(s.f+'T'+(s.h||D.cfg.horaDef)+':00').getTime()+(+D.cfg.actaMin||0)*60000}
+function sEst(s){const c=s.correo&&s.actaI&&s.actaP;const pl=sPlazo(s);const now=Date.now();
+  if(c){if(s.f<D.cfg.actasDesde)return {k:'okant',l:'Completada',c:'e4',pl};
+    return s.done<=pl?{k:'ok',l:'A tiempo',c:'e4',pl}:{k:'tarde',l:'Fuera de plazo',c:'e3',pl,dem:s.done-pl}}
+  if(s.f>HOY)return {k:'prog',l:'Programada',c:'e0',pl};
+  if(s.f<D.cfg.actasDesde)return {k:'ant',l:'Anterior al seguimiento',c:'e0',pl};
+  if(now<=pl)return {k:'pend',l:'Pendiente',c:'st-l',pl,rest:pl-now};
+  return {k:'venc',l:'Vencida',c:'st-b',pl,dem:now-pl}}
+function pInfo(p){
+  const es=ENTS.map(t=>eInfo(p,t));
+  const real=avg(es.map(e=>ST[e.x.e].p)),esp=avg(es.map(e=>e.exp));
+  const venc=es.filter(e=>e.venc),vrev=es.filter(e=>e.vrev);const fin=es.every(e=>e.x.e===4);
+  const cnt=ST.map((_,i)=>es.filter(e=>e.x.e===i).length);
+  const fi=FASES.findIndex((_,i)=>es.some(e=>e.t.f===i&&e.x.e!==4));
+  const etapa=fi<0?'Cerrado':'F'+(fi+1)+' · '+FASES[fi];
+  const dv=D.desv.filter(d=>d.pid==p.id);const ult=dv[dv.length-1]||null;
+  const atr=venc.length>0||vrev.length>0;
+  const causa=!atr?null:venc.length?(ult?(ult.dep==='Alicorp'?'alicorp':'ippb_eq'):'sin'):'ippb_rev';
+  const motivo=!atr?'':causa==='ippb_rev'?'Revisión pendiente':causa==='sin'?'Sin justificar':ult.motivo;
+  const crono=fin?{k:'fin',l:'Finalizado',c:'e4'}:atr?{k:'atr',l:'Atrasado',c:'st-b'}:HOY<p.ini?{k:'pi',l:'Por iniciar',c:'e0'}:{k:'plazo',l:'En plazo',c:'ok'};
+  const q=[];if(cnt[2])q.push(first(lider().id)+' · '+cnt[2]+' por revisar');if(cnt[3])q.push('Equipo '+p.equipo+' · '+cnt[3]+' por corregir');
+  const quien=q.length?q.join(' / '):fin?'—':'Equipo '+p.equipo;
+  const ses=(D.ses[p.id]||[]).map(s=>({s,st:sEst(s)}));
+  const sesP=ses.filter(o=>o.st.k==='pend'||o.st.k==='venc');
+  return {es,real,esp,desv:real-esp,venc,vrev,fin,cnt,etapa,crono,quien,dv,ult,ses,sesP,causa,motivo,sinJust:causa==='sin'};
+}
+function navs(){
+  const r=UI.rol;
+  if(r==='Líder de Procesos')return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['revision','Revisión','✓'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄'],['equipo','Equipo','⚇']];
+  if(r==='PM')return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['revision','Revisión','✓'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄']];
+  if(r==='Consultor')return [['mis','Mis procesos','☰'],['procesos','Procesos','▦'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄'],['tablero','Tablero','◫']].concat(meU().admin?[['equipo','Equipo','⚇']]:[]);
+  return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄']];
+}
+const TITLES={tablero:['Tablero general','Programado vs. real, atrasos y actas'],procesos:['Procesos','Etapa, entregables y avance programado vs. real'],revision:['Bandeja de revisión','Entregables cargados que esperan revisión'],cronograma:['Cronograma','Fases planificadas por proceso'],mapa:['Mapa de procesos','Qué proceso antecede o sucede a cuál'],mis:['Mis procesos','Los procesos de tu equipo'],equipo:['Equipo y accesos','Usuarios, roles, plazos y asignación de procesos']};
+function curView(){const ok=navs().map(n=>n[0]);const h=(location.hash||'').slice(1);return ok.includes(h)?h:ok[0]}
+
+/* ---------- Componentes ---------- */
+const chip=(l,c)=>`<span class="chip ${c}">${esc(l)}</span>`;
+const chipE=e=>chip(ST[e].l,ST[e].c);
+const dual=(real,esp)=>`<div class="bar" title="Real ${real}% · programado ${esp}%"><i style="width:${real}%;background:${real<esp?'var(--e3-bar)':'var(--accent)'}"></i><b style="left:calc(${esp}% - 1px)"></b></div>`;
+const dtxt=d=>d>=0?`<span class="pos">+${d} pts</span>`:`<span class="neg">${d} pts</span>`;
+const legend=()=>`<div class="legend">${ST.map(s=>`<span><i style="background:var(--${s.c}-bar)"></i>${s.l}</span>`).join('')}<span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--danger)"></i>Vencido (equipo)</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--late)"></i>Revisión vencida (IPPB)</span></div>`;
+function cellE(p,e){return `<button class="cell ${ST[e.x.e].c}${e.venc?' venc':''}${e.vrev?' vrev':''}" data-a="open" data-pid="${p.id}" data-k="${e.t.k}" title="${esc(e.t.l+' · '+ST[e.x.e].l+(e.venc?' · vencido el '+fmt(e.f.fin):'')+(e.vrev?' · revisión vencida el '+fmt(e.prv):'')+(e.x.link?' · archivo cargado':''))}">${e.t.s}${e.x.link?' ↗':''}</button>`}
+const causaChip=x=>x.causa?`<span class="chip" style="background:var(--sunken);color:var(--text)"><i style="width:8px;height:8px;border-radius:2px;display:inline-block;background:${CAUSAS[x.causa].c}"></i>${esc(CAUSAS[x.causa].l)}</span>`:'';
+// Barras verticales agrupadas (0–100 %).
+function vbars(groups,series){
+  const grid=[0,25,50,75,100].map(v=>`<div class="vg" style="bottom:${v}%"><span>${v}%</span></div>`).join('');
+  const gs=groups.map(g=>`<div class="vgrp${g.dim?' dim':''}">${g.vals.map((v,i)=>`<div class="vbar" style="height:${Math.max(v,.6)}%;background:${series[i].c}" title="${esc(g.l+' · '+series[i].l+': '+v+'%')}"><span>${v}%</span></div>`).join('')}</div>`).join('');
+  return `<div class="vplot" role="img" aria-label="${esc(groups.map(g=>g.l+': '+g.vals.map((v,i)=>series[i].l+' '+v+'%').join(', ')).join('; '))}"><div class="vin">${grid}<div class="vgrps">${gs}</div></div></div>
+  <div class="vlbls">${groups.map(g=>`<div>${esc(g.l)}${g.sub?`<small>${esc(g.sub)}</small>`:''}</div>`).join('')}</div>
+  <div class="legend" style="margin-top:10px">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.l}</span>`).join('')}</div>`}
+// Barras horizontales (conteos). Si la fila tiene acción, es clicable.
+function hbars(rows){const m=Math.max(1,...rows.map(r=>r.v));
+  return `<div class="rows" style="gap:2px">${rows.map(r=>{const inner=`<div class="hb"><div class="lbl">${esc(r.l)}${r.sub?`<small>${esc(r.sub)}</small>`:''}</div><div class="track"><i style="width:${r.v/m*100}%;background:${r.c}" title="${esc(r.l+': '+r.v)}"></i></div><b class="num" style="text-align:right">${r.v}</b></div>`;
+    return r.a?`<button class="clkrow" data-a="${r.a}" data-v="${esc(r.d)}" title="Ver estos procesos">${inner}</button>`:`<div style="padding:4px 6px">${inner}</div>`}).join('')}</div>`}
+function motivoRows(atr){
+  return MOTIVOS.map(x=>({l:x.m,dep:x.d,v:atr.filter(y=>(y.causa==='alicorp'||y.causa==='ippb_eq')&&y.ult.motivo===x.m).length,c:x.d==='Alicorp'?CAUSAS.alicorp.c:CAUSAS.ippb_eq.c,a:'goMot',d:x.m}))
+    .concat([{l:'Revisión pendiente',dep:'IPPB · revisión',sub:'entregado, falta revisar',v:atr.filter(y=>y.causa==='ippb_rev').length,c:CAUSAS.ippb_rev.c,a:'goDep',d:'ippb_rev'},
+      {l:'Sin justificar',dep:'—',v:atr.filter(y=>y.causa==='sin').length,c:CAUSAS.sin.c,a:'goMot',d:'sin'}])}
+function actasOf(xs){return xs.flatMap(x=>x.ses.map(o=>({p:x.p,...o})))}
+
+/* ---------- Tablero ---------- */
+function tabData(){return D.P.filter(p=>(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).map(p=>({p,...pInfo(p)}))}
+function vTablero(){
+  const allF=tabData();
+  const base=UI.tini==='ini'?allF.filter(x=>x.p.ini<=HOY):allF;
+  const es=allF.flatMap(x=>x.es);
+  const cnt=ST.map((_,i)=>es.filter(e=>e.x.e===i).length);
+  const real=avg(base.map(x=>x.real)),esp=avg(base.map(x=>x.esp));
+  const atr=allF.filter(x=>x.crono.k==='atr');
+  const nAli=atr.filter(x=>x.causa==='alicorp').length;
+  const vrevN=allF.reduce((s,x)=>s+x.vrev.length,0);
+  const act=actasOf(allF);const ac=k=>act.filter(a=>a.st.k===k).length;
+  const kpis=[
+    ['Avance real / programado',`${real}%<small> / ${esp}%</small>`,dtxt(real-esp)+' frente al cronograma'],
+    ['Procesos atrasados',atr.length,`de ${allF.filter(x=>x.p.ini<=HOY).length} iniciados · ${atr.filter(x=>x.sinJust).length} sin justificar`],
+    ['Atraso por Alicorp',`${nAli}<small> / ${atr.length}</small>`,'atrasos que dependen del cliente'],
+    ['En revisión',cnt[2],`con ${esc(first(lider().id))} · ${plural(vrevN,'vencida')}`],
+    ['Observados',cnt[3],'devueltos al consultor'],
+    ['Actas vencidas',ac('venc'),`${ac('pend')} pendientes · ${ac('tarde')} fuera de plazo`]];
+  // Programado vs real por equipo
+  const grp=(l,sub,it,dim)=>({l,sub,dim,vals:[avg(it.map(x=>x.esp)),avg(it.map(x=>x.real))]});
+  const SER=[{l:'Programado',c:'var(--prog)'},{l:'Real',c:'var(--accent)'}];
+  const eqs=[1,2,3].filter(n=>UI.teq==='all'||UI.teq==n);
+  const gEq=eqs.map(n=>grp('Equipo '+n,teamName(n),base.filter(x=>x.p.equipo===n)));
+  if(eqs.length>1)gEq.push(grp('Total',base.length+' procesos',base));
+  const bySp=D.P.filter(p=>UI.teq==='all'||p.equipo==UI.teq).map(p=>({p,...pInfo(p)}));
+  const gSp=D.SP.map(sp=>{const it=bySp.filter(x=>x.p.sprint===sp.n);return grp('Sprint '+sp.n,fmt(sp.ini)+' – '+fmt(sp.fin),it,UI.tsp!=='all'&&UI.tsp!=sp.n)});
+  // De quién depende
+  const dep=Object.entries(CAUSAS).map(([k,c])=>({l:c.l,sub:k==='alicorp'?'falta BAE, usuarios, accesos, reprogramación…':k==='ippb_eq'?'motivo atribuido al equipo':k==='ippb_rev'?'entregado, esperando revisión de '+first(lider().id):'atrasado sin motivo registrado',v:atr.filter(x=>x.causa===k).length,c:c.c,a:'goDep',d:k}));
+  const porEnt=ENTS.map(t=>{const ds=es.filter(e=>e.t.k===t.k);const n=ds.length||1;
+    return `<div class="row"><div class="lbl" style="width:200px;flex-shrink:0">${t.l}<small>F${t.f+1} · ${ds.filter(e=>e.x.e===4).length} de ${ds.length} finalizados</small></div><div class="stack">${ST.map((s,i)=>{const c=ds.filter(e=>e.x.e===i).length;return c?`<i style="width:${c/n*100}%;background:var(--${s.c}-bar)" title="${s.l}: ${c}"></i>`:''}).join('')}</div></div>`}).join('');
+  const alertas=atr.sort((a,b)=>(b.venc.length+b.vrev.length)-(a.venc.length+a.vrev.length)).slice(0,8).map(x=>`<button class="alert" data-a="open" data-pid="${x.p.id}">${causaChip(x)}<div style="min-width:0"><div class="t">${esc(x.p.nombre)}</div><div class="m">${esc(x.p.codigo)} · S${x.p.sprint} · Equipo ${x.p.equipo} · ${esc(x.motivo)}${x.venc.length?' · '+plural(x.venc.length,'entregable vencido','entregables vencidos'):''}${x.vrev.length?' · '+plural(x.vrev.length,'revisión vencida','revisiones vencidas'):''} · real ${x.real}% / programado ${x.esp}%</div></div></button>`).join('')||'<div class="empty">Ningún proceso atrasado en este filtro.</div>';
+  // Actas
+  const done=ac('ok')+ac('tarde');const cumpl=done+ac('venc')?Math.round(ac('ok')/(done+ac('venc'))*100):null;
+  const tardes=act.filter(a=>a.st.k==='tarde');const demProm=tardes.length?tardes.reduce((s,a)=>s+a.st.dem,0)/tardes.length:0;
+  const actRows=Object.entries(SESK).map(([k,s])=>({l:s.l,v:ac(k),c:s.c}));
+  const actList=act.filter(a=>a.st.k==='venc'||a.st.k==='pend').sort((a,b)=>a.st.pl-b.st.pl).slice(0,6).map(a=>`<button class="alert" data-a="open" data-pid="${a.p.id}">${chip(a.st.l,a.st.c)}<div style="min-width:0"><div class="t">${SES[a.s.t]||a.s.t} · ${esc(a.p.nombre)}</div><div class="m">${fmt(a.s.f)} · Equipo ${a.p.equipo} · ${a.st.k==='venc'?'vencida hace '+durTxt(a.st.dem):'quedan '+durTxt(a.st.rest)} · falta: ${[!a.s.correo&&'correo',!a.s.actaI&&'acta interna',!a.s.actaP&&'acta PMO-100'].filter(Boolean).join(', ')}</div></div></button>`).join('');
+  const feed=D.log.filter(r=>{const p=proc(r.pid);return p&&(UI.teq==='all'||p.equipo==UI.teq)}).slice().sort((a,b)=>b.ts-a.ts).slice(0,7).map(r=>{const p=proc(r.pid);
+    return `<div class="it"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b style="font-size:13px">${esc(uName(r.autor))}</b> <span class="muted" style="font-size:12px">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span><p>${esc(r.k?ENT[r.k].s+' · ':'')}${esc(p?p.nombre:'')}: ${esc(r.t)}</p></div></div>`}).join('');
+  const o=(v,cur,l)=>`<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(l)}</option>`;
+  return `
+  <div class="filters">
+    <select class="sel" id="teq" data-f="teq" aria-label="Equipo">${o('all',UI.teq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.teq,'Equipo '+n+' · '+teamName(n))).join('')}</select>
+    <select class="sel" id="tsp" data-f="tsp" aria-label="Sprint">${o('all',UI.tsp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.tsp,'Sprint '+s.n+' · '+fmt(s.ini)+' – '+fmt(s.fin))).join('')}</select>
+    <div class="seg" role="group" aria-label="Procesos que cuentan en el avance"><button data-a="tini" data-v="ini" aria-pressed="${UI.tini==='ini'}">Solo iniciados</button><button data-a="tini" data-v="all" aria-pressed="${UI.tini==='all'}">Todos</button></div>
+    <span class="muted" style="font-size:12.5px">${allF.length} procesos en el filtro</span>
+    <button class="btn pri" data-a="export" style="margin-left:auto">⤓ Exportar reporte (Excel)</button>
+  </div>
+  <div class="grid g6">${kpis.map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('')}</div>
+  <div class="grid g2e">
+    <div class="card"><h2>Programado vs. real por equipo <small>${UI.tini==='ini'?'procesos ya iniciados':'todos los procesos del filtro'}</small></h2>${gEq.length?vbars(gEq,SER):'<div class="empty">Sin procesos.</div>'}</div>
+    <div class="card"><h2>Programado vs. real por sprint <small>${UI.teq==='all'?'todos los equipos':'Equipo '+UI.teq}</small></h2>${vbars(gSp,SER)}</div>
+  </div>
+  <div class="grid g2e">
+    <div class="card"><h2>¿De quién depende el atraso? <small>${plural(atr.length,'proceso atrasado','procesos atrasados')}</small></h2>${atr.length?hbars(dep):'<div class="empty">No hay procesos atrasados.</div>'}<p class="muted" style="font-size:12px;margin:10px 0 0">Si el entregable ya se cargó a tiempo y falta revisarlo, el atraso es de IPPB · revisión, no del consultor. Haz clic en una barra para ver esos procesos.</p></div>
+    <div class="card"><h2>Atrasos por motivo</h2>${atr.length?hbars(motivoRows(atr).map(r=>({...r,sub:r.sub||('depende de '+r.dep)}))):'<div class="empty">No hay procesos atrasados.</div>'}</div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h2>Procesos atrasados</h2><div class="rows" style="gap:8px">${alertas}</div></div>
+    <div class="card"><h2>Actas de sesiones <small>plazo ${durTxt(D.cfg.actaMin*60000)} tras la sesión</small></h2>${hbars(actRows)}
+      <p style="font-size:13px;margin:10px 0 12px">${cumpl==null?'<span class="muted">Aún no hay actas que medir en este filtro.</span>':`<b>${cumpl}%</b> de las actas se entregaron a tiempo.${tardes.length?` Las que llegaron tarde demoraron en promedio <b>${durTxt(demProm)}</b> de más.`:''}`}</p>
+      <div class="rows" style="gap:8px">${actList||'<div class="empty" style="padding:10px">No hay actas pendientes ni vencidas.</div>'}</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h2>Entregables por estado</h2><div class="rows">${porEnt}</div><div style="margin-top:14px">${legend()}</div></div>
+    <div class="card"><h2>Actividad reciente</h2><div class="feed">${feed||'<div class="empty">Aún no hay movimientos. Cuando un consultor cargue un entregable o Jenny lo revise, aparecerá aquí.</div>'}</div></div>
+  </div>`;
+}
+
+/* ---------- Procesos ---------- */
+function filtrar(){
+  const q=UI.q.trim().toLowerCase();
+  return D.P.slice().sort((a,b)=>a.ini.localeCompare(b.ini)||a.equipo-b.equipo).map(p=>({p,...pInfo(p)})).filter(x=>(UI.feq==='all'||x.p.equipo==UI.feq)&&(UI.fsp==='all'||x.p.sprint==UI.fsp)&&(UI.fst==='all'||x.cnt[+UI.fst]>0)&&(UI.fcr==='all'||x.crono.k===UI.fcr)
+    &&(UI.fmo==='all'||(UI.fmo==='sin'?x.causa==='sin':(x.causa==='alicorp'||x.causa==='ippb_eq')&&x.ult.motivo===UI.fmo))
+    &&(UI.fdep==='all'||x.causa===UI.fdep)
+    &&(!q||[x.p.nombre,x.p.codigo,x.p.macro,x.p.po,x.p.ku,x.p.n4,x.p.n3,x.p.area].join(' ').toLowerCase().includes(q)));
+}
+function filtrosHTML(){
+  const o=(v,cur,l)=>`<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(l)}</option>`;
+  const any=UI.q||UI.feq!=='all'||UI.fsp!=='all'||UI.fst!=='all'||UI.fcr!=='all'||UI.fmo!=='all'||UI.fdep!=='all';
+  return `<div class="filters">
+    <input class="inp" id="q" data-f="q" placeholder="Buscar proceso, código N4, PO o KU" value="${esc(UI.q)}" style="flex:1;min-width:180px;max-width:300px">
+    <select class="sel" id="feq" data-f="feq" aria-label="Equipo">${o('all',UI.feq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.feq,'Equipo '+n+' · '+teamName(n))).join('')}</select>
+    <select class="sel" id="fsp" data-f="fsp" aria-label="Sprint">${o('all',UI.fsp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.fsp,'Sprint '+s.n)).join('')}</select>
+    <select class="sel" id="fst" data-f="fst" aria-label="Estado de entregable">${o('all',UI.fst,'Cualquier estado')}${ST.map((s,i)=>o(i,UI.fst,'Con entregables '+s.l.toLowerCase())).join('')}</select>
+    <select class="sel" id="fcr" data-f="fcr" aria-label="Cronograma">${o('all',UI.fcr,'Todo el cronograma')}${o('atr',UI.fcr,'Atrasados')}${o('plazo',UI.fcr,'En plazo')}${o('pi',UI.fcr,'Por iniciar')}${o('fin',UI.fcr,'Finalizados')}</select>
+    <select class="sel" id="fdep" data-f="fdep" aria-label="De quién depende">${o('all',UI.fdep,'Cualquier responsable')}${Object.entries(CAUSAS).map(([k,c])=>o(k,UI.fdep,'Depende de: '+c.l)).join('')}</select>
+    <select class="sel" id="fmo" data-f="fmo" aria-label="Motivo de desvío">${o('all',UI.fmo,'Cualquier motivo')}${MOTIVOS.map(m=>o(m.m,UI.fmo,m.m)).join('')}${o('sin',UI.fmo,'Sin justificar')}</select>
+    ${any?'<button class="btn sm ghost" data-a="clrF">Limpiar filtros</button>':''}
+  </div>`;
+}
+function resumen(xs){
+  const atr=xs.filter(x=>x.crono.k==='atr');
+  const cnt=ST.map((_,i)=>xs.reduce((s,x)=>s+x.cnt[i],0));
+  let m='';if(atr.length){const c={};atr.forEach(x=>{const k=CAUSAS[x.causa].l;c[k]=(c[k]||0)+1});m=' ('+Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,v])=>v+' '+k).join(', ')+')'}
+  return `<div class="summary"><b>${xs.length} procesos</b> · <b class="${atr.length?'neg':''}">${atr.length} con retraso</b>${esc(m)} · entregables: ${cnt[3]} observados, ${cnt[2]} en revisión, ${cnt[4]} finalizados</div>`;
+}
+function vProcesos(){
+  const xs=filtrar();
+  const rows=xs.map(x=>{const p=x.p;
+    return `<tr class="clk"><td><button data-a="open" data-pid="${p.id}" class="pname">${esc(p.nombre)}<span class="mono">${esc(p.codigo)}</span></button></td>
+    <td class="num">S${p.sprint}</td><td style="white-space:nowrap">Eq. ${p.equipo}<div class="muted" style="font-size:11.5px">${esc(teamName(p.equipo))}</div></td>
+    <td style="white-space:nowrap;font-size:12.5px">${esc(x.etapa)}</td><td style="font-size:12.5px;min-width:130px">${esc(x.quien)}</td>
+    ${FASES.map((_,i)=>`<td><div class="cells">${x.es.filter(e=>e.t.f===i).map(e=>cellE(p,e)).join('')}</div></td>`).join('')}
+    <td class="num">${x.esp}%</td><td class="num"><b>${x.real}%</b></td><td class="num" style="white-space:nowrap">${dtxt(x.desv)}</td>
+    <td>${chip(x.crono.l,x.crono.c)}${x.crono.k==='atr'?`<div style="font-size:11.5px;margin-top:4px;white-space:nowrap" class="${x.causa==='sin'?'neg':'muted'}">${esc(CAUSAS[x.causa].l)}${x.causa!=='sin'&&x.causa!=='ippb_rev'?' · '+esc(x.motivo):''}</div>`:''}</td></tr>`}).join('');
+  return filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCORTA.map((f,i)=>`<th>F${i+1} ${f}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="13" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
+}
+
+/* ---------- Bandeja de revisión ---------- */
+function vRevision(){
+  const all=D.P.flatMap(p=>ENTS.map(t=>({p,...eInfo(p,t)}))).filter(o=>UI.revEq==='all'||o.p.equipo==UI.revEq);
+  const pend=all.filter(o=>o.x.e===2).sort((a,b)=>a.prv.localeCompare(b.prv));
+  const obs=all.filter(o=>o.x.e===3);
+  const nv=pend.filter(o=>o.vrev).length;
+  const rv=canReview();
+  const card=o=>{const key=o.p.id+':'+o.t.k;
+    return `<div class="card rvcard"><div class="hd"><div style="flex:1;min-width:200px"><span class="mono muted">${esc(o.p.codigo)} · F${o.t.f+1} ${FASES[o.t.f]}</span><h3 style="font-size:15px;margin-top:3px">${esc(o.t.l)}</h3><div class="muted" style="font-size:12.5px">${esc(o.p.nombre)} · Equipo ${o.p.equipo} · ${esc(teamName(o.p.equipo))}</div></div>${o.vrev?chip('Revisión vencida','st-l'):chipE(2)}</div>
+    <div class="muted" style="font-size:12.5px">Versión ${o.x.ver} · cargado por ${esc(uName(o.x.por))} el ${fmt(o.x.fc)}${o.tarde?' (fuera de plazo)':' (a tiempo)'} · revisar hasta <b style="color:${o.vrev?'var(--late)':'inherit'}">${fmt(o.prv)}</b>${o.x.link?` · <a href="${esc(o.x.link)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Abrir archivo ↗</a>`:''}</div>
+    ${rv?`<textarea class="inp fw big" id="rv-${o.p.id}-${o.t.k}" data-f="rv" data-key="${key}" placeholder="Observaciones para el consultor (obligatorio si lo observas). Puedes escribir todo lo que necesites.">${esc(UI.rvT[key]||'')}</textarea>
+    <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">Ver proceso</button><button class="btn sm warn" data-a="rObs" data-key="${key}">Observar y devolver</button><button class="btn sm ok" data-a="rFin" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">Solo la Líder de Procesos cambia este estado.</p>`}</div>`};
+  return `<div class="filters"><select class="sel" id="revEq" data-f="revEq" aria-label="Equipo"><option value="all">Todos los equipos</option>${[1,2,3].map(n=>`<option value="${n}" ${UI.revEq==n?'selected':''}>Equipo ${n} · ${esc(teamName(n))}</option>`).join('')}</select><span class="muted" style="font-size:12.5px">${pend.length} por revisar${nv?` · <b style="color:var(--late)">${nv} con la revisión vencida</b>`:''} · ${obs.length} observados con los consultores</span></div>
+  <div class="pgrid">${pend.map(card).join('')||'<div class="card empty" style="grid-column:1/-1">No hay entregables esperando revisión. Cuando un consultor cargue un entregable, aparecerá aquí.</div>'}</div>
+  ${obs.length?`<div class="card"><h2>Observados <small>ya están en la bandeja del equipo para corregir</small></h2><div class="rows" style="gap:8px">${obs.map(o=>`<button class="alert" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">${chipE(3)}<div style="min-width:0"><div class="t">${esc(o.t.l)} · ${esc(o.p.nombre)}</div><div class="m">Lo tiene: Equipo ${o.p.equipo} · ${esc(teamName(o.p.equipo))} · ${esc(o.x.obs.length>140?o.x.obs.slice(0,140)+'…':o.x.obs)}</div></div></button>`).join('')}</div></div>`:''}`;
+}
+
+/* ---------- Cronograma ---------- */
+function vCronograma(){
+  const G0=D.P.reduce((m,p)=>p.ini<m?p.ini:m,'9999'),G1=addD(D.P.reduce((m,p)=>p.fin>m?p.fin:m,''),1);const tot=dias(G0,G1);
+  const pos=s=>Math.max(0,Math.min(100,dias(G0,s)/tot*100));
+  const sem=[];for(let d=G0;d<G1;d=addD(d,14))sem.push(d);
+  const today=HOY>=G0&&HOY<=G1?`<div class="gtoday" style="left:${pos(HOY)}%" title="Hoy"></div>`:'';
+  const rows=D.SP.map(sp=>{const it=D.P.filter(p=>p.sprint===sp.n).sort((a,b)=>a.ini.localeCompare(b.ini));const inf=it.map(pInfo);const r=avg(inf.map(x=>x.real)),e=avg(inf.map(x=>x.esp));const L=pos(sp.ini),W=pos(addD(sp.fin,1))-L;const open=!!UI.exp[sp.n];
+    let h=`<div class="grow"><div class="gl"><button class="caret" data-a="exp" data-n="${sp.n}" aria-expanded="${open}" aria-label="Mostrar procesos">${open?'▼':'▶'}</button><b style="display:inline">Sprint ${sp.n}</b><div class="muted" style="font-size:11.5px;padding-left:16px">${it.length} procesos · real ${r}% / programado ${e}%</div></div><div class="gtrack">${today}<div class="gbar" style="left:${L}%;width:${W}%"><i style="width:${r}%;background:var(--accent)"></i></div></div></div>`;
+    if(open)h+=it.map((p,j)=>{const I=inf[j];
+      const segs=p.fases.map((f,i)=>{const es=I.es.filter(x=>x.t.f===i);const done=es.every(x=>x.x.e===4);const v=es.some(x=>x.venc);const vr=es.some(x=>x.vrev);const col=done?'var(--e4-bar)':v?'var(--danger)':vr?'var(--late)':f.ini<=HOY?'var(--accent)':'var(--e0-bar)';const l=pos(f.ini),w=Math.max(.6,pos(addD(f.fin,1))-l);
+        return `<div class="gseg" style="left:${l}%;width:${w}%;background:${col};opacity:${i%2?.8:1}" title="F${i+1} ${FASES[i]} · ${fmt(f.ini)} – ${fmt(f.fin)}"></div>`}).join('');
+      return `<div class="grow gsub"><div class="gl"><button data-a="open" data-pid="${p.id}" style="border:0;background:transparent;padding:0;text-align:left;font-size:12.5px">${esc(p.nombre)}</button><div class="muted mono">Eq. ${p.equipo} · ${I.real}% / ${I.esp}%</div></div><div class="gtrack">${today}${segs}</div></div>`}).join('');
+    return h}).join('');
+  return `<div class="card" style="overflow-x:auto"><div class="gantt"><div class="gh"><div></div><div class="gscale">${sem.map(d=>`<span style="left:${pos(d)}%">${fmt(d)}</span>`).join('')}</div></div>${rows}</div></div>
+  <div class="legend"><span><i style="background:var(--e0-bar)"></i>Fase por iniciar</span><span><i style="background:var(--accent)"></i>Fase en curso</span><span><i style="background:var(--e4-bar)"></i>Fase finalizada</span><span><i style="background:var(--danger)"></i>Entregables vencidos (equipo)</span><span><i style="background:var(--late)"></i>Revisión vencida (IPPB)</span><span><i style="background:var(--danger);width:2px"></i>Hoy</span></div>
+  <p class="muted" style="margin:0;font-size:12px">Cada proceso muestra sus 4 fases según 03_Omega_Cronograma: AS IS → TO BE y BPMN → Documentación funcional → Validación y cierre.</p>`;
+}
+
+/* ---------- Mapa de procesos ---------- */
+function procOpts(cur,excl){
+  return D.SP.map(sp=>`<optgroup label="Sprint ${sp.n}">${D.P.filter(p=>p.sprint===sp.n&&p.id!=excl).map(p=>`<option value="${p.id}" ${String(cur)===String(p.id)?'selected':''}>${esc(p.codigo+' · '+p.nombre)}</option>`).join('')}</optgroup>`).join('')}
+function addRel(a,b,nota){a=+a;b=+b;
+  if(!a||!b){toast('Elige los dos procesos');return false}
+  if(a===b){toast('Un proceso no puede antecederse a sí mismo');return false}
+  if(D.rel.some(r=>r.a===a&&r.b===b)){toast('Esa relación ya está registrada');return false}
+  if(D.rel.some(r=>r.a===b&&r.b===a)){toast('Ya existe la relación al revés; quítala primero si está mal');return false}
+  D.rel.push({id:uid(),a,b,est:'Por confirmar',nota:String(nota||'').trim(),autor:UI.as,fecha:HOY});
+  D.log.push({id:uid(),pid:b,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Relación: '+proc(a).nombre+' → '+proc(b).nombre});
+  persist();toast('Relación registrada. Queda «por confirmar» con negocio.');return true}
+function relItem(r,other,lado){const o=proc(other);if(!o)return '';
+  return `<div class="rel"><button class="relp" data-a="open" data-pid="${o.id}">${lado} ${esc(o.nombre)}<small>${esc(o.codigo)} · S${o.sprint} · Eq. ${o.equipo}${r.nota?' · '+esc(r.nota):''} · ${esc(first(r.autor))} ${fmt(r.fecha)}</small></button>${chip(r.est,r.est==='Confirmado'?'e4':'e1')}
+  ${relBtns(r)}</div>`}
+function vMapa(){
+  const pass=p=>(UI.meq==='all'||p.equipo==UI.meq)&&(UI.msp==='all'||p.sprint==UI.msp);
+  const R=D.rel.filter(r=>{const a=proc(r.a),b=proc(r.b);return a&&b&&(pass(a)||pass(b))});
+  const ids=[...new Set(R.flatMap(r=>[r.a,r.b]))];
+  const lvl={};const L=(id,st)=>{if(lvl[id]!=null)return lvl[id];if(st.has(id))return 0;st.add(id);const ps=R.filter(r=>r.b===id).map(r=>r.a);const v=ps.length?Math.max(...ps.map(x=>L(x,st)+1)):0;st.delete(id);lvl[id]=v;return v};
+  ids.forEach(id=>L(id,new Set()));
+  const cols={};ids.forEach(id=>{(cols[lvl[id]]=cols[lvl[id]]||[]).push(proc(id))});
+  const W=236,H=62,GX=80,GY=16,pos={};let maxR=0;
+  Object.keys(cols).forEach(c=>{cols[c].sort((a,b)=>a.sprint-b.sprint||a.ini.localeCompare(b.ini)).forEach((p,i)=>{pos[p.id]={x:12+c*(W+GX),y:12+i*(H+GY)};maxR=Math.max(maxR,i+1)})});
+  const nC=Object.keys(cols).length;const SW=Math.max(300,12+nC*(W+GX)-GX+12),SH=12+maxR*(H+GY)-GY+12;
+  const cut=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+  const edges=R.map(r=>{const a=pos[r.a],b=pos[r.b];const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const ok=r.est==='Confirmado';
+    return `<path d="M${x1} ${y1} C${x1+50} ${y1} ${x2-50} ${y2} ${x2-2} ${y2}" fill="none" stroke="${ok?'var(--navy)':'var(--accent)'}" stroke-width="2" ${ok?'':'stroke-dasharray="6 5"'} marker-end="url(#${ok?'arN':'arA'})"><title>${esc(proc(r.a).nombre+' → '+proc(r.b).nombre+' · '+r.est)}</title></path>`}).join('');
+  const nodes=ids.map(id=>{const p=proc(id),q=pos[id],I=pInfo(p);const sc=I.crono.k==='atr'?'var(--danger)':I.crono.k==='fin'?'var(--pos)':'var(--line)';
+    return `<g class="mnode" data-a="open" data-pid="${id}" transform="translate(${q.x} ${q.y})"><rect width="${W}" height="${H}" rx="12" fill="var(--surface)" stroke="${sc}" stroke-width="${I.crono.k==='atr'?2:1.5}"/><text x="12" y="18" font-family="var(--f-mono)" font-size="10.5" fill="var(--muted)">${esc(p.codigo)} · S${p.sprint} · Eq.${p.equipo}</text><text x="12" y="36" font-size="12.5" font-weight="600" fill="var(--text)">${esc(cut(p.nombre,33))}</text><text x="12" y="52" font-size="11" fill="var(--muted)">${esc(cut(p.nombre.length>33?p.nombre.slice(32):'',36))}</text><title>${esc(p.nombre)}</title></g>`}).join('');
+  const o=(v,cur,l)=>`<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(l)}</option>`;
+  const M=UI.mrel;
+  const list=R.slice().reverse().map(r=>{const a=proc(r.a),b=proc(r.b);return `<tr><td><button class="pname" data-a="open" data-pid="${a.id}">${esc(a.nombre)}<span class="mono">${esc(a.codigo)}</span></button></td><td aria-label="antecede a">→</td><td><button class="pname" data-a="open" data-pid="${b.id}">${esc(b.nombre)}<span class="mono">${esc(b.codigo)}</span></button></td><td style="font-size:12.5px">${esc(r.nota||'—')}<div class="muted" style="font-size:11.5px">${esc(first(r.autor))} · ${fmt(r.fecha)}</div></td><td>${chip(r.est,r.est==='Confirmado'?'e4':'e1')}</td><td style="white-space:nowrap">${relBtns(r)}</td></tr>`}).join('');
+  return `<div class="filters"><select class="sel" id="meq" data-f="meq" aria-label="Equipo">${o('all',UI.meq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.meq,'Equipo '+n)).join('')}</select><select class="sel" id="msp" data-f="msp" aria-label="Sprint">${o('all',UI.msp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.msp,'Sprint '+s.n)).join('')}</select><span class="muted" style="font-size:12.5px">${plural(R.length,'relación','relaciones')} · ${plural(ids.length,'proceso')}</span></div>
+  ${canRel()?`<form data-form="mrel" class="card" style="display:flex;flex-direction:column;gap:10px"><h2 style="margin:0">Registrar una relación <small>sale de lo levantado en las sesiones</small></h2>
+    <div class="two"><div><label class="flbl" for="mra">Proceso que va antes</label><select class="sel fw" id="mra" data-f="mrA"><option value="">Elegir…</option>${procOpts(M.a)}</select></div><div><label class="flbl" for="mrb">Proceso que va después</label><select class="sel fw" id="mrb" data-f="mrB"><option value="">Elegir…</option>${procOpts(M.b,M.a)}</select></div></div>
+    <div class="row" style="flex-wrap:wrap;align-items:flex-end"><div style="flex:1;min-width:200px"><label class="flbl" for="mrn">De dónde sale</label><input class="inp fw" id="mrn" data-f="mrN" placeholder="Ej. Taller AS IS del 28 oct con el KU" value="${esc(M.nota)}"></div><button class="btn pri" type="submit">Agregar relación</button></div></form>`:''}
+  ${R.length?`<div class="mapwrap"><svg width="${SW}" height="${SH}" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="Mapa de relaciones entre procesos"><defs><marker id="arN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--navy)"/></marker><marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>${edges}${nodes}</svg></div>
+  <div class="legend"><span><i style="background:var(--navy);height:2px;width:18px"></i>Confirmada por negocio</span><span><i style="background:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 9px);height:2px;width:18px"></i>Por confirmar</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--danger)"></i>Proceso atrasado</span><span>De izquierda a derecha: lo que va antes → lo que va después. Haz clic en un proceso para abrir su ficha.</span></div>
+  <div class="tblwrap"><table><thead><tr><th>Antecesor</th><th></th><th>Sucesor</th><th>Origen</th><th>Estado</th><th></th></tr></thead><tbody>${list}</tbody></table></div>`
+  :`<div class="card empty">Todavía no hay relaciones${UI.meq!=='all'||UI.msp!=='all'?' en este filtro':''}. Regístralas a medida que las confirmen en las sesiones, aquí arriba o desde la ficha de cada proceso. Con eso se va armando el mapa.</div>`}`;
+}
+
+/* ---------- Mis procesos (consultor) ---------- */
+function vMis(){
+  const eq=meU().eq;
+  const mis=D.P.filter(p=>p.equipo==eq).map(p=>({p,...pInfo(p)}));
+  const c=ST.map((_,i)=>mis.reduce((s,x)=>s+x.cnt[i],0));
+  const act=mis.filter(x=>x.p.ini<=HOY&&!x.fin);
+  const pen=mis.filter(x=>x.cnt[3]||x.sinJust||x.sesP.length||x.venc.length);
+  const list=UI.misF==='activos'?act:UI.misF==='pend'?pen:mis;
+  const grupos=D.SP.map(sp=>({sp,it:list.filter(x=>x.p.sprint===sp.n)})).filter(g=>g.it.length);
+  const segs=[['activos','En curso ('+act.length+')'],['pend','Con pendientes ('+pen.length+')'],['todos','Todos ('+mis.length+')']];
+  const atrE=mis.filter(x=>x.venc.length).length;const actV=mis.reduce((s,x)=>s+x.sesP.filter(o=>o.st.k==='venc').length,0);
+  return `<div class="card"><h2>Equipo ${eq} · ${esc(teamName(eq))}</h2><p style="margin:0;font-size:14px">Tienen <b>${c[3]} observado${c[3]===1?'':'s'}</b> por corregir, <b>${c[2]} en revisión</b> con ${esc(first(lider().id))} y <b>${c[4]} finalizado${c[4]===1?'':'s'}</b>. ${atrE?`<span class="neg">${plural(atrE,'proceso')} con entregables vencidos</span>.`:'Ningún entregable vencido.'} ${actV?`<span class="neg">${plural(actV,'acta vencida','actas vencidas')}</span>.`:''}</p></div>
+  <div class="filters"><div class="seg" role="group" aria-label="Filtro">${segs.map(([k,l])=>`<button data-a="misF" data-v="${k}" aria-pressed="${UI.misF===k}">${l}</button>`).join('')}</div></div>
+  ${grupos.map(g=>`<section style="display:flex;flex-direction:column;gap:12px"><h2 style="font-size:15px">Sprint ${g.sp.n} <span class="muted" style="font-family:var(--f-body);font-weight:400;font-size:12.5px">${fmt(g.sp.ini)} – ${fmt(g.sp.fin)}</span></h2><div class="pgrid">${g.it.map(x=>{
+    const sv=x.sesP.filter(o=>o.st.k==='venc').length,sp=x.sesP.length-sv;
+    const todo=[x.cnt[3]&&plural(x.cnt[3],'observado')+' por corregir',x.venc.length&&plural(x.venc.length,'entregable vencido','entregables vencidos'),x.sinJust&&'Justificar el desvío',sv&&plural(sv,'acta vencida','actas vencidas'),sp&&plural(sp,'acta pendiente','actas pendientes')].filter(Boolean);
+    return `<button class="pc" data-a="open" data-pid="${x.p.id}"><div class="row" style="justify-content:space-between"><span class="mono muted">${esc(x.p.codigo)}</span>${chip(x.crono.l,x.crono.c)}</div><h3>${esc(x.p.nombre)}</h3>
+    <div class="muted" style="font-size:12px">${esc(x.etapa)} · ${fmt(x.p.ini)} – ${fmt(x.p.fin)}${x.causa==='ippb_rev'?' · atraso en revisión, no del equipo':''}</div>
+    <div class="cells" style="flex-wrap:wrap">${x.es.map(e=>`<span class="cell ${ST[e.x.e].c}${e.venc?' venc':''}${e.vrev?' vrev':''}" title="${esc(e.t.l+' · '+ST[e.x.e].l)}">${e.t.s}</span>`).join('')}</div>
+    <div class="row" style="gap:8px">${dual(x.real,x.esp)}<b class="num" style="font-size:12px;white-space:nowrap">${x.real}% / ${x.esp}%</b></div>
+    ${todo.length?`<div class="todo">${todo.map(t=>`<span>• ${t}</span>`).join('')}</div>`:''}</button>`}).join('')}</div></section>`).join('')||'<div class="card empty">No hay procesos en este filtro.</div>'}`;
+}
+
+/* ---------- Equipo y accesos ---------- */
+function vEquipo(){
+  const R=UI.ren;
+  const users=D.users.map(u=>R&&R.id===u.id?`<form data-form="ren" class="row" style="flex-wrap:wrap"><input class="inp" id="ren-n" data-f="renN" value="${esc(R.nombre)}" aria-label="Nombre" style="flex:1;min-width:140px"><button class="btn sm pri" type="submit">Guardar</button><button type="button" class="btn sm ghost" data-a="renX">Cancelar</button></form>`:
+    `<div class="row" style="flex-wrap:wrap"><span class="av sm">${ini(u.nombre)}</span><div class="lbl" style="flex:1;min-width:140px">${esc(u.nombre)}<small>${esc(u.id)}</small></div>
+    <select class="sel" id="rol-${esc(u.id)}" data-f="urol" data-id="${esc(u.id)}" aria-label="Rol de ${esc(u.nombre)}" style="font-size:12px">${ROLES.map(r=>`<option ${u.rol===r?'selected':''}>${r}</option>`).join('')}</select>
+    ${u.rol==='Consultor'?`<select class="sel" id="ueq-${esc(u.id)}" data-f="ueq" data-id="${esc(u.id)}" aria-label="Equipo de ${esc(u.nombre)}" style="font-size:12px">${[1,2,3].map(n=>`<option value="${n}" ${u.eq==n?'selected':''}>Equipo ${n}</option>`).join('')}</select>`:''}
+    ${u.rol!=='Líder de Procesos'?`<button class="ck" data-a="uAdm" data-id="${esc(u.id)}" aria-pressed="${!!u.admin}" title="El administrador puede revertir cargas, relaciones, motivos y sesiones">${u.admin?'✓ ':''}Administrador</button>`:''}
+    <button class="btn sm ghost" data-a="rename" data-id="${esc(u.id)}">Editar</button>${u.id!==UI.as?`<button class="btn sm ghost" data-a="delU" data-id="${esc(u.id)}" style="color:var(--danger)">Quitar</button>`:''}</div>`).join('');
+  const q=UI.q.trim().toLowerCase();
+  const ps=D.P.filter(p=>(UI.fsp==='all'||p.sprint==UI.fsp)&&(!q||(p.nombre+' '+p.codigo).toLowerCase().includes(q)));
+  const rows=ps.map(p=>`<tr><td class="pname" style="max-width:320px">${esc(p.nombre)}<span class="mono">${esc(p.codigo)}</span></td><td class="num">S${p.sprint}</td><td style="font-size:12.5px">${esc(p.po)}<br><span class="muted">KU: ${esc(p.ku)}</span></td>
+    <td><select class="sel" id="peq-${p.id}" data-f="peq" data-pid="${p.id}" aria-label="Equipo de ${esc(p.nombre)}">${[1,2,3].map(n=>`<option value="${n}" ${p.equipo==n?'selected':''}>Equipo ${n} · ${esc(teamName(n))}</option>`).join('')}</select></td></tr>`).join('');
+  return `<div class="grid g2" style="align-items:start">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="filters"><input class="inp" id="q" data-f="q" placeholder="Buscar proceso o código" value="${esc(UI.q)}" style="flex:1;min-width:180px;max-width:300px"><select class="sel" id="fsp" data-f="fsp" aria-label="Sprint"><option value="all">Todos los sprints</option>${D.SP.map(s=>`<option value="${s.n}" ${UI.fsp==s.n?'selected':''}>Sprint ${s.n}</option>`).join('')}</select></div>
+      <p class="muted" style="margin:0;font-size:12.5px">Cada proceso pertenece a un equipo (senior + junior), como en el cronograma. Los dos consultores del equipo pueden registrar su avance.</p>
+      <div class="tblwrap"><table><thead><tr><th>Proceso</th><th>Sprint</th><th>PO / KU</th><th>Equipo</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="card"><h2>Plazos de control</h2>
+      <div class="two"><div><label class="flbl" for="cfa">Plazo para actas (minutos tras la sesión)</label><input class="inp fw" id="cfa" type="number" min="0" step="15" data-f="cfgActa" value="${esc(D.cfg.actaMin)}"></div><div><label class="flbl" for="cfr">Días para revisar un entregable</label><input class="inp fw" id="cfr" type="number" min="0" data-f="cfgRev" value="${esc(D.cfg.revDias)}"></div>
+      <div><label class="flbl" for="cfd">Medir actas desde</label><input class="inp fw" id="cfd" type="date" data-f="cfgDesde" value="${esc(D.cfg.actasDesde)}"></div><div><label class="flbl" for="cfh">Hora de fin si no se registra</label><input class="inp fw" id="cfh" type="time" data-f="cfgHora" value="${esc(D.cfg.horaDef)}"></div></div>
+      <p class="note" style="margin:10px 0 0">Acta: queda <b>pendiente</b> al terminar la sesión y pasa a <b>vencida</b> si en ${durTxt(D.cfg.actaMin*60000)} no se marcó correo + acta interna + acta PMO-100. Si se completa después, queda como <b>fuera de plazo</b> con su demora. Revisión: el plazo es la fecha de revisión del cronograma o ${plural(+D.cfg.revDias,'día')} desde la carga, lo que sea más tarde; si vence, el atraso es de IPPB · revisión.</p></div>
+    <div class="card"><h2>Usuarios y roles</h2><div class="rows">${users}</div>
+      <form data-form="inv" style="display:flex;flex-direction:column;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+        <label for="inv-nombre" style="font-size:12px;font-weight:600">Dar acceso a una persona</label>
+        <input class="inp" id="inv-nombre" data-f="invNombre" placeholder="Nombre y apellido" value="${esc(UI.inv.nombre)}">
+        <input class="inp" id="inv-id" data-f="invId" placeholder="Correo corporativo" value="${esc(UI.inv.id)}">
+        <div class="row" style="flex-wrap:wrap"><select class="sel" id="inv-rol" data-f="invRol" style="flex:1">${ROLES.map(r=>`<option ${UI.inv.rol===r?'selected':''}>${r}</option>`).join('')}</select>${UI.inv.rol==='Consultor'?`<select class="sel" id="inv-eq" data-f="invEq">${[1,2,3].map(n=>`<option value="${n}" ${UI.inv.eq==n?'selected':''}>Equipo ${n}</option>`).join('')}</select>`:''}<button class="btn pri" type="submit">Dar acceso</button></div>
+      </form></div>
+    <div class="card"><h2>Permisos por confirmar</h2>
+      <button class="tog" data-a="pmRev" aria-pressed="${!!D.cfg.pmRevisa}"><i></i>El PM también puede observar o finalizar entregables</button>
+      <p class="note" style="margin:10px 0 0">Líder de Procesos: ve todo, revisa (observa o finaliza), confirma relaciones y gestiona el equipo. PM: ve todo. Consultor: carga entregables, sesiones, desvíos y relaciones. Administrador (además de su rol): revierte la última carga o cambio de estado de un entregable, devuelve relaciones a «por confirmar», anula motivos y elimina sesiones; todo queda en el historial. Solo lectura: por ejemplo, Alicorp, si se decide darle acceso.</p></div>
+    </div></div>`;
+}
+
+/* ---------- Ficha de proceso (panel lateral) ---------- */
+function vDrawer(){
+  const p=proc(UI.drawer);if(!p)return '';
+  const I=pInfo(p);const w=canWork(p);const rv=canReview();
+  const entRow=e=>{const key=p.id+':'+e.t.k;const x=e.x;const open=UI.edit===key;const f=UI.form||{};
+    const sub=x.ver?`v${x.ver} · cargado ${fmt(x.fc)} por ${esc(first(x.por))}${e.tarde?' · 1.ª entrega fuera de plazo':''}${x.e===2?' · revisar hasta '+fmt(e.prv):''}`:'Entrega plan '+fmt(e.f.fin);
+    let h=`<div class="doc" id="e-${p.id}-${e.t.k}"><button data-a="edit" data-key="${key}" aria-expanded="${open}"><div class="dn">${esc(e.t.l)}<small>${sub} · <b>${esc(quienE(p,x))}</b></small></div>${e.venc?chip('Vencido','st-b'):''}${e.vrev?chip('Revisión vencida','st-l'):''}${chipE(x.e)}</button>`;
+    if(open){
+      const lg=D.log.filter(r=>r.pid==p.id&&r.k===e.t.k).slice().reverse();
+      h+=`<div class="ed">${x.link?`<a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;font-size:13px">Abrir archivo cargado (v${x.ver}) ↗</a>`:''}
+      ${x.e===3&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>Observación de ${esc(first(lider().id))}:</b> ${esc(x.obs)}</div>`:''}
+      ${e.vrev?`<div class="note warn">Se cargó el ${fmt(x.fc)} y la revisión debía hacerse hasta el ${fmt(e.prv)}. Este atraso es de IPPB · revisión, no del equipo.</div>`:''}`;
+      if(w&&[0,1,3].includes(x.e)){
+        h+=`${x.e===0?`<button class="btn sm" data-a="eElab" data-key="${key}" style="align-self:flex-start">Marcar «En elaboración»</button>`:''}
+        ${MODE==='sp'?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)">${fileSugs(p,SUBS[e.t.f],'useFile',key,TOK[e.t.k])}
+          <label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo '+esc(UI.up.name)+(UI.up.pct!=null?' · '+UI.up.pct+'%':'…'):'⤒ Subir archivo desde mi PC'}<input type="file" data-f="upE" data-key="${key}" hidden ${UI.up?'disabled':''}></label>
+          <span class="muted" style="font-size:11.5px">Se guarda en «${esc(SUBS[e.t.f])}» como ${esc(p.codigo)}_${TOK[e.t.k]}_v${x.ver+1}.</span></div>`:''}
+        <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl"></div>
+        <div><label for="ft">Comentario</label><textarea class="inp" id="ft" data-f="ft" placeholder="${x.e===3?'Qué corregiste':'Opcional'}">${esc(f.t)}</textarea></div>
+        <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="cancel">Cancelar</button><button class="btn pri" data-a="eSend" data-key="${key}">Cargar y enviar a revisión</button></div>`;
+      }else if(x.e===2){
+        h+=rv?`<div><label for="ft">Observaciones para el consultor</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si lo observas. Puedes escribir todo lo que necesites.">${esc(f.t)}</textarea></div><div class="row" style="justify-content:flex-end"><button class="btn warn" data-a="eObs" data-key="${key}">Observar y devolver al equipo</button><button class="btn ok" data-a="eFin" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión con ${esc(lider().nombre)}.</p>`;
+      }else if(x.e===4){
+        h+=`<p class="note" style="margin:0">Finalizado: el entregable ya está bien.</p>${rv?`<div><label for="ft">Motivo para reabrir</label><textarea class="inp" id="ft" data-f="ft">${esc(f.t)}</textarea></div><div class="row" style="justify-content:flex-end"><button class="btn sm warn" data-a="eObs" data-key="${key}">Reabrir como observado</button></div>`:''}`;
+      }else h+=`<p class="note" style="margin:0">${x.e===3?'Devuelto al equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') para corregir.':'Solo el equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') puede cargar este entregable.'}</p>`;
+      const lr=isAdmin()&&lastRev(key);
+      if(lr)h+=UI.cRev===key?`<div class="note warn" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:180px">¿Revertir «${esc(lr.t.split('\n')[0])}»? Vuelve a ${ST[lr.prev.e].l}${lr.prev.link!==x.link?(lr.prev.link?' con la versión anterior del archivo':' sin archivo cargado'):''}. Queda en el historial.</span><button class="btn sm warn" data-a="eRevY" data-key="${key}">Sí, revertir</button><button class="btn sm ghost" data-a="eRevN">No</button></div>`
+        :`<button class="btn sm ghost" data-a="eRev" data-key="${key}" style="align-self:flex-start">↶ Revertir último cambio (administrador)</button>`;
+      h+=`<div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span> ${chipE(r.a)}${r.undone?' '+chip('Revertido','e0'):''}<p>${esc(r.t)}</p></div></div>`).join('')}</div></div>`;
+    }
+    return h+'</div>'};
+  const sesRow=({s,st})=>{const ed=UI.sesEd===s.id;
+    const det=st.k==='pend'?`plazo hasta ${hhmm(st.pl)} · quedan ${durTxt(st.rest)}`:st.k==='venc'?`venció ${fmtTs(st.pl)} · hace ${durTxt(st.dem)}`:st.k==='tarde'?`completada ${fmtTs(s.done)} · ${durTxt(st.dem)} tarde`:st.k==='ok'?`completada ${fmtTs(s.done)}`:st.k==='prog'?'programada':st.k==='ant'?'antes de que empezara el control de actas':'registrada antes del control de actas';
+    return `<div class="ses"><div class="sh"><div class="sn">${SES[s.t]||s.t}<small>${fmt(s.f)} · fin ${s.h?s.h:'sin hora ('+D.cfg.horaDef+')'} · ${det}</small></div>${chip(st.l,st.c)}${w||isAdmin()?`<button class="btn sm ghost" data-a="sesEd" data-sid="${s.id}" aria-expanded="${ed}">${ed?'Cerrar':'Editar'}</button>`:''}</div>
+      <div class="cks">${[['correo','Correo enviado'],['actaI','Acta interna'],['actaP','Acta PMO-100']].map(([k,l])=>`<button class="ck" data-a="sesT" data-sid="${s.id}" data-fl="${k}" aria-pressed="${!!s[k]}" ${w||isAdmin()?'':'disabled'}>${s[k]?'✓ ':''}${l}</button>`).join('')}${s.link?`<a href="${esc(s.link)}" target="_blank" rel="noopener" class="ck" style="text-decoration:none;color:var(--accent)">Abrir acta ↗</a>`:''}</div>
+      ${ed?`<div class="three"><div><label class="flbl" for="se-f">Fecha (reprogramar)</label><input class="inp fw" id="se-f" type="date" data-f="seF" data-sid="${s.id}" value="${esc(s.f)}"></div><div><label class="flbl" for="se-h">Hora de fin</label><input class="inp fw" id="se-h" type="time" data-f="seH" data-sid="${s.id}" value="${esc(s.h)}"></div><div><label class="flbl" for="se-l">Enlace al acta</label><input class="inp fw" id="se-l" type="url" data-f="seL" data-sid="${s.id}" placeholder="https://…" value="${esc(s.link)}"></div></div>${MODE==='sp'?`${fileSugs(p,'Actas','useActa',s.id,s.f)}<label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo…':'⤒ Subir acta desde mi PC'}<input type="file" data-f="upA" data-sid="${s.id}" hidden ${UI.up?'disabled':''}></label>`:''}${isAdmin()?`<button class="btn sm ghost" data-a="sesDel" data-sid="${s.id}" style="color:var(--danger);align-self:flex-start">Eliminar esta sesión (administrador)</button>`:''}`:''}</div>`};
+  const S=UI.sesF,V=UI.dvF,RF=UI.relF;
+  const lg=D.log.filter(r=>r.pid==p.id).slice().reverse().slice(0,12);
+  const RL={ant:D.rel.filter(r=>r.b==p.id),suc:D.rel.filter(r=>r.a==p.id)};
+  return `<div class="drawer-bg" data-a="close"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(p.nombre)}">
+  <div class="dh"><div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="mono" style="background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:99px">${esc(p.codigo)}</span>${chip(I.crono.l,I.crono.c)}${causaChip(I)}</div><h2>${esc(p.nombre)}</h2></div><button class="btn sm" data-a="close" aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <div class="meta"><div><small>Sprint · plan</small><b>S${p.sprint} · ${fmt(p.ini)} – ${fmt(p.fin)}</b></div><div><small>Equipo</small><b>Equipo ${p.equipo} · ${esc(teamName(p.equipo))}</b></div><div><small>Process Owner</small><b>${esc(p.po)}</b></div><div><small>Key User</small><b>${esc(p.ku)}</b></div><div><small>Etapa actual</small><b>${esc(I.etapa)}</b></div><div><small>Con quién está</small><b>${esc(I.quien)}</b></div></div>
+    <div class="doc" style="padding:12px 14px"><div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:8px"><b>Avance real ${I.real}% · programado hoy ${I.esp}%</b>${dtxt(I.desv)}</div>${dual(I.real,I.esp)}</div>
+    ${!w?`<p class="note" style="margin:0">${UI.rol==='Consultor'?'Este proceso es del equipo '+p.equipo+'. Puedes verlo, pero no editarlo.':UI.rol==='Solo lectura'||UI.rol==='PM'?'Vista de consulta.':''}</p>`:''}
+    <div class="sect">Justificación del desvío ${I.dv.length?`<span>${plural(I.dv.length,'registro')}</span>`:''}${w&&!V?'<button class="btn sm" data-a="dvAdd">+ Registrar motivo</button>':''}</div>
+    ${I.sinJust&&!V?`<div class="note bad">El proceso está atrasado (${I.venc.map(e=>e.t.s).join(', ')} vencido${I.venc.length>1?'s':''}) y no tiene un motivo registrado.</div>`:''}
+    ${I.causa==='ippb_rev'?`<div class="note info">El equipo entregó y el atraso está en la revisión (${I.vrev.map(e=>e.t.s).join(', ')}). No hace falta que el consultor lo justifique.</div>`:''}
+    ${V?`<form data-form="desv" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="dvm">Motivo</label><select class="sel fw" id="dvm" data-f="dvMot">${MOTIVOS.map(m=>`<option ${V.motivo===m.m?'selected':''}>${m.m}</option>`).join('')}</select></div><div><label class="flbl" for="dvdp">Depende de</label><select class="sel fw" id="dvdp" data-f="dvDep">${DEPS.map(d=>`<option ${V.dep===d?'selected':''}>${d}</option>`).join('')}</select></div><div><label class="flbl" for="dvf">Fase</label><select class="sel fw" id="dvf" data-f="dvFase">${FASES.map((f,i)=>`<option value="${i}" ${V.fase==i?'selected':''}>F${i+1} · ${f}</option>`).join('')}</select></div></div><div><label class="flbl" for="dvd">Detalle</label><textarea class="inp fw" id="dvd" data-f="dvDet" placeholder="Ej. la sesión se movió del miércoles al jueves; no llegó el BAE del área comercial">${esc(V.det)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="dvX">Cancelar</button><button class="btn pri" type="submit">Guardar motivo</button></div></form>`:''}
+    ${I.dv.slice().reverse().map(d=>`<div class="hist"><div class="h"><span class="av sm">${ini(uName(d.autor))}</span><div style="min-width:0">${chip(d.motivo,'e3')} ${chip('Depende de '+(d.dep||MDEP[d.motivo]||'IPPB'),'e0')} <span class="muted">· F${+d.fase+1} · ${esc(first(d.autor))} · ${fmt(d.fecha)}</span><p>${esc(d.det)}</p>${isAdmin()?`<button class="btn sm ghost" data-a="dvDel" data-id="${d.id}" style="color:var(--danger);padding-left:0">Anular este motivo</button>`:''}</div></div></div>`).join('')}
+    ${FASES.map((fn,i)=>{const f=p.fases[i]||{};return `<div class="sect">F${i+1} · ${fn} <span>plan ${fmt(f.ini)} – ${fmt(f.fin)}${f.rev?' · revisión hasta '+fmt(f.rev):''}</span></div><div style="display:flex;flex-direction:column;gap:8px">${I.es.filter(e=>e.t.f===i).map(entRow).join('')}</div>`}).join('')}
+    ${foldPanel(p,w)}
+    <div class="sect">Sesiones y actas <span>${I.ses.length} registradas · ${I.sesP.length} pendientes o vencidas</span>${w&&!S?'<button class="btn sm" data-a="sesAdd">+ Agregar sesión</button>':''}</div>
+    ${S?`<form data-form="ses" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="sft">Tipo</label><select class="sel fw" id="sft" data-f="sfT">${Object.entries(SES).map(([k,l])=>`<option value="${k}" ${S.t===k?'selected':''}>${l}</option>`).join('')}</select></div><div><label class="flbl" for="sff">Fecha</label><input class="inp fw" id="sff" type="date" data-f="sfF" value="${esc(S.f)}"></div><div><label class="flbl" for="sfh">Hora de fin</label><input class="inp fw" id="sfh" type="time" data-f="sfH" value="${esc(S.h)}"></div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sesX">Cancelar</button><button class="btn pri" type="submit">Agregar</button></div></form>`:''}
+    <p class="muted" style="margin:0;font-size:12px">Al terminar la sesión: envía el correo, sube el acta y marca los tres checks. Hay ${durTxt(D.cfg.actaMin*60000)} desde la hora de fin; después queda vencida.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">${I.ses.slice().sort((a,b)=>a.s.f.localeCompare(b.s.f)).map(sesRow).join('')||'<div class="note">Sin sesiones.</div>'}</div>
+    <div class="sect">Relaciones · antecesor y sucesor <span>${RL.ant.length+RL.suc.length}</span>${canRel()&&!RF?'<button class="btn sm" data-a="relAdd">+ Agregar</button>':''}</div>
+    ${RF?`<form data-form="rel" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="two"><div><label class="flbl" for="rlt">Este proceso…</label><select class="sel fw" id="rlt" data-f="relT"><option value="ant" ${RF.t==='ant'?'selected':''}>viene después de (antecesor)</option><option value="suc" ${RF.t==='suc'?'selected':''}>viene antes de (sucesor)</option></select></div><div><label class="flbl" for="rlo">Proceso</label><select class="sel fw" id="rlo" data-f="relO"><option value="">Elegir…</option>${procOpts(RF.o,p.id)}</select></div></div><div><label class="flbl" for="rln">De dónde sale</label><input class="inp fw" id="rln" data-f="relN" placeholder="Ej. Taller AS IS del 28 oct" value="${esc(RF.n)}"></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="relX">Cancelar</button><button class="btn pri" type="submit">Guardar relación</button></div></form>`:''}
+    <div style="display:flex;flex-direction:column;gap:6px">${RL.ant.map(r=>relItem(r,r.a,'⟵ Antes:')).join('')}${RL.suc.map(r=>relItem(r,r.b,'⟶ Después:')).join('')}${RL.ant.length+RL.suc.length?'':'<div class="note">Aún no se registró qué proceso va antes o después de este.</div>'}</div>
+    <details class="doc" style="padding:0 12px" ${UI.anOpen?'open':''}><summary data-a="anTog" style="cursor:pointer;padding:11px 0;font-size:13px;font-weight:600">Análisis de impacto (maestro de procesos)</summary>
+      <div class="meta" style="padding-bottom:12px">${[
+        ['Proceso Alicorp (nivel 4)',p.n4],['Nivel 3',p.n3],['Nivel 2',p.n2],['Ciclo · Tipo',p.ciclo+' · '+p.tipo],['Macroproceso',p.macro],['Responsable / área',p.area],['Categoría',p.cat],
+        ['Impacto',p.impacto],['Impacto Bolivia',p.impactoBol],['Uyuni',p.uyuni],['¿Revisar?',p.revisar],['Revisión 2.0',p.revision2],['Prerrequisito',p.prereq?'Sí':'No'],
+        ['Taxonomía DEX',p.taxDex],['Taxonomía proporcionada por',p.taxPor]].filter(x=>x[1]).map(([l,v])=>`<div><small>${l}</small><b>${esc(v)}</b></div>`).join('')}</div>
+      ${[['Comentario',p.comentario],['Comentarios Bolivia',p.comentarioBol],['Comentario revisión 2.0',p.comentarioRev],['Acción pendiente',p.accion]].filter(x=>x[1]).map(([l,v])=>`<div style="padding-bottom:12px"><div class="sect" style="margin-bottom:4px">${l}</div><div style="font-size:13px;white-space:pre-line">${esc(v)}</div></div>`).join('')}
+    </details>
+    <div class="sect">Historial</div>
+    <div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)} · ${esc(r.k?ENT[r.k].s:'Proceso')}</span><p>${esc(r.t)}</p></div></div>`).join('')||'<div class="note">Todavía no hay movimientos.</div>'}</div>
+  </div></aside>`;
+}
+
+/* ---------- Exportar a Excel ---------- */
+function loadXL(){return new Promise((res,rej)=>{if(window.XLSX)return res(window.XLSX);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=()=>window.XLSX?res(window.XLSX):rej(new Error('xlsx'));s.onerror=()=>rej(new Error('xlsx'));document.head.appendChild(s)})}
+let DLP=null;try{if(window.claude&&typeof window.claude.use==='function')DLP=Promise.resolve(window.claude.use('downloads')).catch(()=>null)}catch(e){DLP=null}
+async function saveFile(name,buf){
+  const dl=DLP?await DLP:null;
+  if(dl){try{await dl.save({filename:name,data:new Blob([buf])});toast('Reporte descargado: '+name)}catch(e){toast(e&&e.code==='declined'?'Descarga cancelada':'No se pudo descargar en esta vista ('+((e&&e.code)||'error')+')')}return}
+  const b=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Reporte descargado: '+name)}
+async function exportar(){
+  toast('Preparando el reporte…');
+  let X;try{X=await loadXL()}catch(e){toast('No se pudo cargar el generador de Excel. Revisa tu conexión.');return}
+  const xs=tabData();const base=UI.tini==='ini'?xs.filter(x=>x.p.ini<=HOY):xs;const atr=xs.filter(x=>x.crono.k==='atr');
+  const filtro='Equipo: '+(UI.teq==='all'?'todos':UI.teq+' ('+teamName(UI.teq)+')')+' · Sprint: '+(UI.tsp==='all'?'todos':UI.tsp)+' · Avance: '+(UI.tini==='ini'?'solo procesos iniciados':'todos los procesos');
+  const grp=(l,it)=>{const r=avg(it.map(x=>x.real)),e=avg(it.map(x=>x.esp));return [l,it.length,e,r,r-e,it.filter(x=>x.crono.k==='atr').length]};
+  const H1=['Grupo','Procesos','Programado %','Real %','Desvío (pts)','Atrasados'];
+  const R=[['Seguimiento OMEGA · Reporte de avance'],['Generado',dmy(HOY)+' '+hhmm(Date.now()),'Por',uName(UI.as)],['Filtros',filtro],[],['PROGRAMADO VS REAL POR EQUIPO'],H1];
+  [1,2,3].forEach(n=>{const it=base.filter(x=>x.p.equipo===n);if(it.length)R.push(grp('Equipo '+n+' · '+teamName(n),it))});R.push(grp('Total',base));
+  R.push([],['PROGRAMADO VS REAL POR SPRINT'],H1);
+  D.SP.forEach(sp=>{const it=base.filter(x=>x.p.sprint===sp.n);if(it.length)R.push(grp('Sprint '+sp.n+' ('+fmt(sp.ini)+' – '+fmt(sp.fin)+')',it))});
+  R.push([],['¿DE QUIÉN DEPENDE EL ATRASO?'],['Responsable','Procesos atrasados','% de los atrasos']);
+  Object.entries(CAUSAS).forEach(([k,c])=>{const n=atr.filter(x=>x.causa===k).length;R.push([c.l,n,atr.length?Math.round(n/atr.length*100):0])});
+  R.push(['Total',atr.length,atr.length?100:0],[],['ATRASOS POR MOTIVO'],['Motivo','Depende de (por defecto)','Procesos atrasados','Procesos']);
+  motivoRows(atr).forEach(m=>R.push([m.l,m.dep,m.v,atr.filter(y=>m.d==='sin'?y.causa==='sin':m.d==='ippb_rev'?y.causa==='ippb_rev':(y.causa==='alicorp'||y.causa==='ippb_eq')&&y.ult.motivo===m.d).map(y=>y.p.codigo).join(', ')]));
+  const act=actasOf(xs);const ac=k=>act.filter(a=>a.st.k===k).length;const tardes=act.filter(a=>a.st.k==='tarde');
+  R.push([],['ACTAS DE SESIONES (plazo '+D.cfg.actaMin+' min tras la sesión, medidas desde '+dmy(D.cfg.actasDesde)+')'],['Estado','Sesiones']);
+  Object.entries(SESK).forEach(([k,s])=>R.push([s.l,ac(k)]));
+  R.push(['Demora promedio de las completadas fuera de plazo (horas)',tardes.length?Math.round(tardes.reduce((s,a)=>s+a.st.dem,0)/tardes.length/36e5*10)/10:0]);
+  const relTxt=(pid,side)=>D.rel.filter(r=>side==='ant'?r.b===pid:r.a===pid).map(r=>proc(side==='ant'?r.a:r.b).codigo+(r.est==='Confirmado'?'':' (por confirmar)')).join(', ');
+  const P=[['Código N4','Proceso','Sprint','Equipo','Consultores','Inicio plan','Fin plan','Etapa actual','Con quién','Programado %','Real %','Desvío (pts)','Estado cronograma','Entregables vencidos (equipo)','Revisiones vencidas (IPPB)','Depende de','Motivo','Detalle de la justificación','Antecesores','Sucesores']]
+    .concat(xs.map(x=>[x.p.codigo,x.p.nombre,x.p.sprint,x.p.equipo,teamName(x.p.equipo),dmy(x.p.ini),dmy(x.p.fin),x.etapa,x.quien,x.esp,x.real,x.desv,x.crono.l,x.venc.map(e=>e.t.l).join(', '),x.vrev.map(e=>e.t.l).join(', '),x.causa?CAUSAS[x.causa].l:'',x.motivo,x.causa==='alicorp'||x.causa==='ippb_eq'?x.ult.det:'',relTxt(x.p.id,'ant'),relTxt(x.p.id,'suc')]));
+  const En=[['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿1.ª entrega a tiempo?','Revisar hasta','Vencido','Observación','Enlace']]
+    .concat(xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,dmy(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),dmy(e.x.fc1),dmy(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',dmy(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link])));
+  const Dv=[['Fecha','Código N4','Proceso','Equipo','Fase','Motivo','Depende de','Detalle','Registrado por']]
+    .concat(D.desv.filter(d=>xs.some(x=>x.p.id===d.pid)).map(d=>{const p=proc(d.pid);return [dmy(d.fecha),p.codigo,p.nombre,p.equipo,'F'+(+d.fase+1)+' · '+FASES[d.fase],d.motivo,d.dep||MDEP[d.motivo]||'',d.det,uName(d.autor)]}));
+  const Ac=[['Código N4','Proceso','Equipo','Sesión','Fecha','Hora fin','Plazo acta','Estado','Correo','Acta interna','Acta PMO-100','Completada','Demora (horas)','Enlace acta']]
+    .concat(act.slice().sort((a,b)=>a.s.f.localeCompare(b.s.f)).map(a=>[a.p.codigo,a.p.nombre,a.p.equipo,SES[a.s.t]||a.s.t,dmy(a.s.f),a.s.h||D.cfg.horaDef+' (supuesta)',dmy(iso(new Date(a.st.pl)))+' '+hhmm(a.st.pl),a.st.l,a.s.correo?'Sí':'No',a.s.actaI?'Sí':'No',a.s.actaP?'Sí':'No',a.s.done?dmy(iso(new Date(a.s.done)))+' '+hhmm(a.s.done):'',a.st.dem?Math.round(a.st.dem/36e5*10)/10:'',a.s.link]));
+  const Rl=[['Antecesor (código)','Antecesor','Sucesor (código)','Sucesor','Estado','De dónde sale','Registrado por','Fecha']]
+    .concat(D.rel.map(r=>{const a=proc(r.a),b=proc(r.b);return [a.codigo,a.nombre,b.codigo,b.nombre,r.est,r.nota,uName(r.autor),dmy(r.fecha)]}));
+  const wb=X.utils.book_new();
+  const add=(name,rows,w)=>{const ws=X.utils.aoa_to_sheet(rows);ws['!cols']=w.map(n=>({wch:n}));X.utils.book_append_sheet(wb,ws,name)};
+  add('Resumen',R,[46,18,16,14,14,40]);add('Procesos',P,[16,46,8,8,18,12,12,26,26,13,9,12,15,30,30,18,30,40,30,30]);add('Entregables',En,[16,40,8,26,34,12,15,30,12,12,8,12,12,18,40,40]);
+  add('Desvíos',Dv,[12,16,40,8,26,32,12,50,20]);add('Actas',Ac,[16,40,8,24,12,16,18,22,8,10,12,18,12,40]);add('Relaciones',Rl,[16,40,16,40,14,30,20,12]);
+  const buf=X.write(wb,{bookType:'xlsx',type:'array'});
+  await saveFile('Seguimiento_OMEGA_'+HOY+(UI.tsp!=='all'?'_S'+UI.tsp:'')+(UI.teq!=='all'?'_Eq'+UI.teq:'')+'.xlsx',buf);
+}
+
+/* ---------- Render ---------- */
+function render(){
+  if(!D){const a=document.activeElement;const fid=a&&a.id;document.getElementById('app').innerHTML=(UI.screen||'')+(UI.toast?`<div class="toast" role="status">${esc(UI.toast)}</div>`:'');if(fid){const el=document.getElementById(fid);if(el)el.focus()}return}
+  const a=document.activeElement;const fid=a&&a.id;const sel=a&&typeof a.selectionStart==='number'?[a.selectionStart,a.selectionEnd]:null;
+  const dsc=document.querySelector('.dbody');const dTop=dsc?dsc.scrollTop:0;
+  const v=curView();const nav=navs();const u=meU();
+  const nRev=Object.values(D.E).filter(x=>x.e===2).length;
+  const misP=UI.rol==='Consultor'?D.P.filter(p=>p.equipo==u.eq).map(pInfo).filter(x=>x.cnt[3]||x.sinJust||x.sesP.some(o=>o.st.k==='venc')).length:0;
+  const badge=id=>id==='revision'&&nRev?`<span class="badge">${nRev}</span>`:id==='mis'&&misP?`<span class="badge">${misP}</span>`:'';
+  const body={tablero:vTablero,procesos:vProcesos,revision:vRevision,cronograma:vCronograma,mapa:vMapa,mis:vMis,equipo:vEquipo}[v]();
+  const d=dt(HOY);const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  document.getElementById('app').innerHTML=`<div class="layout">
+  <aside class="side"><div class="brand">${LOGO('logo')}<b>Seguimiento OMEGA</b><span>Alicorp Bolivia · DEX</span></div>
+    <nav class="nav">${nav.map(([id,l,ic])=>`<button data-a="go" data-v="${id}" ${id===v?'aria-current="page"':''}><span class="ic">${ic}</span>${l}${badge(id)}</button>`).join('')}</nav>
+    <div class="me"><span class="av">${ini(u.nombre)}</span><div style="min-width:0"><b>${esc(u.nombre)}</b><span>${esc(UI.rol)}${u.rol==='Consultor'?' · Equipo '+u.eq:''}${u.admin?' · Admin':''}</span></div></div></aside>
+  <main><header class="top">${LOGO('mlogo')}<div class="tgrow"><h1>${TITLES[v][0]}</h1><div class="sub">${DIAS[d.getDay()]} ${fmt(HOY)} · ${TITLES[v][1]}</div></div>
+    ${MODE==='sp'?`<div class="demo">${syncChip()}<button class="btn sm ghost" data-a="refresh" title="Traer los últimos cambios de SharePoint">↻ Actualizar</button><button class="btn sm ghost" data-a="logout">Salir</button></div>`
+    :`<div class="demo"><span class="pill">Demo</span><label class="muted" for="rol" style="font-size:12px">Ver como</label><select class="sel" id="rol" data-f="rol" style="max-width:240px">${D.users.map(x=>`<option value="${esc(x.id)}" ${UI.as===x.id?'selected':''}>${esc(x.nombre)} · ${esc(x.rol)}</option>`).join('')}</select>
+    ${UI.confirmReset?`<button class="btn sm" data-a="resetY" style="background:var(--danger-bg);color:var(--danger)">Sí, borrar todo</button><button class="btn sm ghost" data-a="resetN">No</button>`:`<button class="btn sm ghost" data-a="reset">Reiniciar demo</button>`}</div>`}</header>
+  <div class="view">${body}</div></main></div>
+  <nav class="mnav">${nav.map(([id,l,ic])=>`<button data-a="go" data-v="${id}" ${id===v?'aria-current="page"':''}><span class="ic">${ic}</span>${l}</button>`).join('')}</nav>
+  ${UI.drawer!=null?vDrawer():''}${UI.toast?`<div class="toast" role="status">${esc(UI.toast)}</div>`:''}`;
+  const nd=document.querySelector('.dbody');if(nd&&dTop)nd.scrollTop=dTop;
+  if(fid){const el=document.getElementById(fid);if(el){el.focus({preventScroll:true});if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(e){}}}
+}
+let tT;function toast(t){UI.toast=t;render();clearTimeout(tT);tT=setTimeout(()=>{UI.toast='';render()},3000)}
+// Los estados de las actas dependen de la hora: refresca cada minuto si no se está escribiendo.
+setInterval(()=>{if(!D)return;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render()},60000);
+function syncChip(){const s=UI.sync;return s.k==='saving'?chip('Guardando…','e2'):s.k==='error'?`<span class="chip st-b" title="${esc(s.msg)}">No se pudo guardar</span><button class="btn sm" data-a="syncRetry">Reintentar</button>`:chip('Guardado en SharePoint','e4')}
+
+/* ---------- Pantallas antes de entrar (solo versión publicada en GitHub) ---------- */
+function screen(html){UI.screen=html;D=null;render()}
+const card=(t,body)=>`<div style="min-height:100vh;display:grid;place-items:center;padding:24px 16px"><div class="card" style="max-width:640px;width:100%;display:flex;flex-direction:column;gap:14px">${LOGO('logo')}<h1 style="font-size:22px">${t}</h1>${body}</div></div>`;
+function scLoading(t){screen(card('Seguimiento OMEGA',`<p class="muted" style="margin:0">${esc(t)}</p>`))}
+function scNoConfig(){screen(card('Falta configurar la conexión',`<p style="margin:0">El archivo <code>config.json</code> del repositorio no tiene el <b>clientId</b>, el <b>tenantId</b> o el <b>sitio</b>. Complétalo con los datos del registro de la app (paso 2 de la guía) y vuelve a cargar la página.</p>
+  <div class="note">Mientras tanto puedes probar en <b>modo demo</b>: elige el archivo <code>omega-datos-iniciales.json</code> de tu PC. Los datos quedan solo en este navegador.</div>
+  <label class="btn" style="align-self:flex-start">Abrir modo demo con un archivo…<input type="file" accept=".json" data-f="demoFile" hidden></label>`))}
+function scLogin(){screen(card('Seguimiento OMEGA',`<p style="margin:0">Entra con tu cuenta de IPPB. La plataforma lee y guarda en el SharePoint del proyecto con tus propios permisos.</p><button class="btn pri" data-a="login" style="align-self:flex-start">Entrar con Microsoft</button>`))}
+function scError(e){screen(card('No se pudo conectar',`<p style="margin:0">${esc(errTxt(e))}</p><div class="note">Toma una captura de este mensaje para soporte. Detalle técnico: ${esc(String(e&&e.message||e))}</div><div class="row"><button class="btn pri" data-a="reload">Reintentar</button><button class="btn ghost" data-a="logout">Salir y entrar con otra cuenta</button></div>`))}
+function scNoAccess(me){screen(card('Todavía no tienes acceso',`<p style="margin:0">Entraste como <b>${esc(me)}</b>, pero ese correo no está en la lista de usuarios de la plataforma.</p><div class="note">Pide a Jenny o a Gael que te agreguen en <b>Equipo → Dar acceso</b> con este mismo correo, exactamente como aparece aquí.</div><button class="btn ghost" data-a="logout" style="align-self:flex-start">Salir</button>`))}
+function errTxt(e){const s=e&&e.status;const m=String(e&&e.message||e);
+  if(/AADSTS65001|consent/i.test(m))return 'Falta aprobar los permisos de la app. Si al entrar no te apareció la pantalla «Permisos solicitados», un administrador de Microsoft 365 debe pulsar «Grant admin consent» en el registro de la app.';
+  if(/AADSTS50011|redirect/i.test(m))return 'La dirección de esta página no coincide con la «Redirect URI» del registro de la app. Deben ser idénticas, incluida la barra final.';
+  if(/AADSTS700016|application.*not found/i.test(m))return 'El clientId o el tenantId de config.json no son correctos.';
+  if(s===401)return 'La sesión venció. Vuelve a entrar.';
+  if(s===403)return 'Tu cuenta no tiene permiso en el sitio de SharePoint. Pide que te agreguen como Miembro del sitio.';
+  if(s===404)return 'No se encontró el sitio de SharePoint. Revisa la dirección «sitio» en config.json.';
+  return 'Ocurrió un error al hablar con Microsoft 365.'}
+function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map(u=>({...u,id:''})),file:null,folders:true,busy:false,msg:''};const S=UI.setup;
+  if(!S.rows.some(r=>r.id))S.rows.find(r=>r.nombre.startsWith('Gael')).id=me;
+  screen(card('Configurar la plataforma (una sola vez)',`<p style="margin:0">El sitio todavía no tiene los datos de OMEGA. Esto crea la lista <b>${esc(OMEGA_SP.cfg().lista)}</b>, carga los 55 procesos con su cronograma y, si lo marcas, arma las carpetas.</p>
+  <div class="sect">1 · Correos de las personas</div><p class="muted" style="margin:0;font-size:12.5px">Tu cuenta es <b>${esc(me)}</b>. Escribe el correo con el que cada persona entra a Microsoft 365.</p>
+  <div class="rows" style="gap:6px">${S.rows.map((r,i)=>`<div class="row" style="flex-wrap:wrap;gap:8px"><div class="lbl" style="width:150px">${esc(r.nombre)}<small>${esc(r.rol)}${r.eq?' · Equipo '+r.eq:''}</small></div><input class="inp" style="flex:1;min-width:200px" type="email" id="su-${i}" data-f="suMail" data-i="${i}" placeholder="nombre@ippb..." value="${esc(r.id)}"></div>`).join('')}</div>
+  <div class="sect">2 · Archivo de datos iniciales</div><p class="muted" style="margin:0;font-size:12.5px">Elige <code>omega-datos-iniciales.json</code> desde tu PC. Se lee en tu navegador y va directo a SharePoint; no se sube a GitHub.</p>
+  <label class="btn" style="align-self:flex-start">${S.file?'✓ '+esc(S.file.name):'Elegir archivo…'}<input type="file" accept=".json" data-f="suFile" hidden></label>
+  <div class="sect">3 · Carpetas</div><button class="tog" data-a="suFold" aria-pressed="${S.folders}"><i></i>Crear la estructura de carpetas de los 55 procesos (unos minutos)</button>
+  ${S.msg?`<div class="note ${S.err?'bad':'info'}">${esc(S.msg)}</div>`:''}
+  <button class="btn pri" data-a="suRun" ${S.busy?'disabled':''} style="align-self:flex-start">${S.busy?'Configurando…':'Configurar'}</button>`))}
+
+/* ---------- Arranque ---------- */
+async function boot(){
+  if(window.SEED_PROCESOS){startDemo();return}
+  scLoading('Cargando…');
+  let c=null;try{c=await (await fetch('config.json',{cache:'no-store'})).json()}catch(e){}
+  if(!c||!c.clientId||!c.tenantId||!c.sitio){scNoConfig();return}
+  if(!window.OMEGA_SP||!window.msal){scError(new Error('No se cargó conexion.js o la librería de Microsoft (msal). Revisa tu conexión a internet.'));return}
+  try{const acc=await OMEGA_SP.init(c);if(!acc){scLogin();return}await openReal()}catch(e){scError(e)}
+}
+async function openReal(){
+  scLoading('Conectando con SharePoint…');
+  OMEGA_SP.onStatus(s=>{UI.sync=s;if(D)render()});
+  await OMEGA_SP.connect();
+  const data=await OMEGA_SP.loadAll();
+  if(!data){scSetup();return}
+  const me=OMEGA_SP.email();const u=data.users.find(x=>x.id===me);
+  if(!u){scNoAccess(me);return}
+  MODE='sp';UI.screen='';start(data,u.id);
+  OMEGA_SP.watch(nd=>{const a=document.activeElement;D=norm(nd);setAs(UI.as);if(!(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)))render()});
+}
+async function runSetup(){const S=UI.setup;
+  const rows=S.rows.map(r=>({...r,id:r.id.trim().toLowerCase()}));
+  if(rows.some(r=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.id))){S.msg='Completa un correo válido para cada persona.';S.err=true;scSetup();return}
+  if(!rows.some(r=>r.id===OMEGA_SP.email())){S.msg='Tu propio correo ('+OMEGA_SP.email()+') debe estar en la lista.';S.err=true;scSetup();return}
+  if(!S.file){S.msg='Elige el archivo de datos iniciales.';S.err=true;scSetup();return}
+  let j;try{j=JSON.parse(await S.file.text())}catch(e){S.msg='El archivo no es un JSON válido.';S.err=true;scSetup();return}
+  if(!Array.isArray(j.procesos)||!Array.isArray(j.sprints)){S.msg='El archivo no tiene «procesos» y «sprints».';S.err=true;scSetup();return}
+  window.SEED_PROCESOS=j.procesos;window.SEED_SPRINTS=j.sprints;
+  const d=seed();delete window.SEED_PROCESOS;
+  d.users=rows.map(r=>({id:r.id,nombre:r.nombre,rol:r.rol,eq:r.eq,admin:r.id===OMEGA_SP.email()||!!r.admin}));
+  S.busy=true;S.err=false;
+  const prog=t=>{S.msg=t;scSetup()};
+  try{await OMEGA_SP.setup(d,S.folders,prog);S.busy=false;UI.setup=null;await openReal()}
+  catch(e){S.busy=false;S.msg='Error: '+errTxt(e)+' ('+(e.message||e)+')';S.err=true;scSetup()}
+}
+
+/* ---------- Carpeta del proceso en SharePoint ---------- */
+const SUBS=['01 AS IS','02 TO BE','03 Funcional','04 Validación','Actas'];
+const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'PROCEDIMIENTOS',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
+async function loadFold(pid){UI.fold[pid]={k:'loading'};render();
+  try{UI.fold[pid]=await OMEGA_SP.folderInfo(proc(pid),SUBS)}catch(e){UI.fold[pid]={k:'error',msg:errTxt(e)}}render()}
+function foldPanel(p,w){if(MODE!=='sp')return '';const F=UI.fold[p.id];
+  const head=`<div class="sect">Carpeta en SharePoint <span>${esc(OMEGA_SP.procPath(p))}</span>${!F||F.k==='error'?`<button class="btn sm" data-a="foldLoad" data-pid="${p.id}">Ver archivos</button>`:F.k==='ok'?`<button class="btn sm ghost" data-a="foldLoad" data-pid="${p.id}">↻</button>`:''}</div>`;
+  if(!F)return head;
+  if(F.k==='loading')return head+'<div class="note">Buscando la carpeta…</div>';
+  if(F.k==='error')return head+`<div class="note bad">${esc(F.msg)}</div>`;
+  if(F.k==='none')return head+`<div class="note">La carpeta de este proceso todavía no existe.${w||isAdmin()?'':' Pide al equipo que la cree.'}</div>${w||isAdmin()?`<button class="btn sm" data-a="foldMake" data-pid="${p.id}" style="align-self:flex-start">Crear carpetas del proceso</button>`:''}`;
+  return head+`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"><a href="${esc(F.web)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;font-size:13px">Abrir la carpeta en SharePoint ↗</a>
+    ${SUBS.map(s=>{const fs=F.subs[s];return `<div style="font-size:12.5px"><b>${esc(s)}</b> ${fs==null?'<span class="muted">· no existe</span>':fs.length?'':'<span class="muted">· vacía</span>'}${(fs||[]).map(f=>`<div class="row" style="gap:6px;padding-left:10px"><a href="${esc(f.web)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(f.name)}</a><span class="muted" style="font-size:11.5px">${fmt(f.mod.slice(0,10))} · ${esc(f.by||'')}</span></div>`).join('')}</div>`}).join('')}</div>`}
+function fileSugs(p,sub,act,key,tok){if(MODE!=='sp')return '';const F=UI.fold[p.id];
+  if(!F||F.k!=='ok')return `<button class="btn sm ghost" data-a="foldLoad" data-pid="${p.id}" style="align-self:flex-start">Buscar archivos en la carpeta «${esc(sub)}»</button>`;
+  const fs=(F.subs[sub]||[]).slice().sort((a,b)=>(tok&&b.name.toUpperCase().includes(tok))-(tok&&a.name.toUpperCase().includes(tok))||b.mod.localeCompare(a.mod));
+  return fs.length?`<div style="display:flex;flex-direction:column;gap:4px"><span class="flbl" style="margin:0">Archivos en «${esc(sub)}»</span>${fs.slice(0,6).map(f=>`<div class="row" style="gap:8px;font-size:12.5px"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(f.name)} <span class="muted">· ${fmt(f.mod.slice(0,10))}</span></span><button class="btn sm" data-a="${act}" data-key="${esc(key)}" data-url="${esc(f.web)}">Usar</button></div>`).join('')}</div>`:`<div class="note">La carpeta «${esc(sub)}» está vacía${F.subs[sub]==null?' o no existe':''}.</div>`}
+async function uploadTo(p,sub,file,name){UI.up={name:file.name};render();
+  try{const r=await OMEGA_SP.upload(p,sub,name,file,pct=>{UI.up={name:file.name,pct};render()});UI.up=null;loadFold(p.id);return r}catch(e){UI.up=null;toast('No se pudo subir: '+errTxt(e));return null}}
+
+/* ---------- Acciones ---------- */
+function startEdit(key){const x=D.E[key];UI.edit=key;UI.form={link:x.link||'',t:''}}
+function openP(pid,k){UI.drawer=+pid;UI.sesF=null;UI.sesEd=null;UI.relF=null;const p=proc(pid);const I=pInfo(p);UI.dvF=I.sinJust&&canWork(p)?{motivo:MOTIVOS[0].m,dep:MOTIVOS[0].d,fase:String(I.venc[0].t.f),det:''}:null;
+  if(k)startEdit(pid+':'+k);else{UI.edit=null;UI.form=null}render();
+  const dsc=document.querySelector('.dbody');if(dsc&&!k)dsc.scrollTop=0;
+  if(k){const el=document.getElementById('e-'+pid+'-'+k);if(el)el.scrollIntoView({block:'center'})}}
+const SNAP=['e','link','ver','fc','fc1','por','obs'];
+function setE(key,e,t,extra){const [pid,k]=key.split(':');const x=D.E[key];const de=x.e;const prev=Object.fromEntries(SNAP.map(f=>[f,x[f]]));Object.assign(x,extra||{});x.e=e;
+  D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de,a:e,t,prev});persist()}
+// Último cambio que se puede revertir (cada reversión deja rastro en el historial; no se borra nada).
+function lastRev(key){const [pid,k]=key.split(':');for(let i=D.log.length-1;i>=0;i--){const r=D.log[i];if(r.pid==pid&&r.k===k&&r.prev&&!r.undone)return r}return null}
+function revertE(key){const r=lastRev(key);if(!r)return;const [pid,k]=key.split(':');const x=D.E[key];Object.assign(x,r.prev);r.undone=true;
+  D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de:r.a,a:x.e,t:'Revirtió «'+r.t.split('\n')[0]+'» ('+first(r.autor)+', '+fmtTs(r.ts)+'). Vuelve a '+ST[x.e].l+'.'});persist();toast(ENT[k].s+': cambio revertido, vuelve a '+ST[x.e].l)}
+function review(key,obs,t){
+  const x=D.E[key];const [pid,k]=key.split(':');const p=proc(pid);t=(t||'').trim();
+  if(obs&&!t){toast('Escribe la observación para el consultor');return false}
+  if(obs)setE(key,3,'Observado y devuelto a Equipo '+p.equipo+' ('+teamName(p.equipo)+'):\n'+t,{obs:t});else setE(key,4,'Finalizado'+(t?': '+t:''),{obs:''});
+  toast(obs?ENT[k].s+' observado · ahora lo tienen '+teamName(p.equipo):ENT[k].s+' finalizado');return true}
+function findSes(sid){for(const pid in D.ses){const s=D.ses[pid].find(x=>x.id===sid);if(s)return {pid:+pid,s}}return null}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a;
+  if(el.tagName==='BUTTON'&&el.type!=='submit')e.preventDefault();
+  switch(a){
+    case 'go':if(location.hash.slice(1)!==el.dataset.v)location.hash=el.dataset.v;else render();window.scrollTo(0,0);break;
+    case 'open':openP(el.dataset.pid,el.dataset.k);break;
+    case 'close':UI.drawer=null;UI.edit=null;UI.sesF=null;UI.dvF=null;UI.relF=null;render();break;
+    case 'edit':if(UI.edit===el.dataset.key){UI.edit=null;UI.form=null}else startEdit(el.dataset.key);render();break;
+    case 'cancel':UI.edit=null;UI.form=null;render();break;
+    case 'eElab':setE(el.dataset.key,1,'Empezó la elaboración');toast('En elaboración');break;
+    case 'eSend':{const key=el.dataset.key;const f=UI.form;const link=f.link.trim();
+      if(!/^https?:\/\//i.test(link)){toast('Pega el enlace del archivo en SharePoint/OneDrive');break}
+      const x=D.E[key];setE(key,2,(x.e===3?'Corrigió la observación y volvió a cargar':'Cargó el entregable')+(f.t.trim()?': '+f.t.trim():''),{link,ver:x.ver+1,fc:HOY,fc1:x.fc1||HOY,por:UI.as});
+      UI.edit=null;UI.form=null;toast('Enviado a revisión con '+first(lider().id));break}
+    case 'eObs':if(review(el.dataset.key,true,UI.form&&UI.form.t)){UI.edit=null;UI.form=null;render()}break;
+    case 'eFin':if(review(el.dataset.key,false,UI.form&&UI.form.t)){UI.edit=null;UI.form=null;render()}break;
+    case 'rObs':if(review(el.dataset.key,true,UI.rvT[el.dataset.key])){delete UI.rvT[el.dataset.key];render()}break;
+    case 'rFin':if(review(el.dataset.key,false,UI.rvT[el.dataset.key])){delete UI.rvT[el.dataset.key];render()}break;
+    case 'sesT':{const o=findSes(el.dataset.sid);if(!o)break;const s=o.s;const k=el.dataset.fl;s[k]=!s[k];
+      const full=s.correo&&s.actaI&&s.actaP;if(full&&!s.done)s.done=Date.now();if(!full)s.done=0;
+      const L={correo:'correo enviado',actaI:'acta interna',actaP:'acta PMO-100'};let t=SES[s.t]+' '+fmt(s.f)+': '+(s[k]?'':'quitó ')+L[k];
+      if(full){const st=sEst(s);t+=st.k==='tarde'?' · acta completa, '+durTxt(st.dem)+' fuera de plazo':st.k==='ok'?' · acta completa a tiempo':' · acta completa'}
+      D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t});persist();render();break}
+    case 'sesEd':UI.sesEd=UI.sesEd===el.dataset.sid?null:el.dataset.sid;render();break;
+    case 'sesAdd':UI.sesF={t:'otra',f:HOY,h:''};render();break;
+    case 'sesX':UI.sesF=null;render();break;
+    case 'dvAdd':UI.dvF={motivo:MOTIVOS[0].m,dep:MOTIVOS[0].d,fase:'0',det:''};render();break;
+    case 'dvX':UI.dvF=null;render();break;
+    case 'relAdd':UI.relF={t:'ant',o:'',n:''};render();break;
+    case 'relX':UI.relF=null;render();break;
+    case 'relOk':{const r=D.rel.find(x=>x.id===el.dataset.id);if(r){r.est='Confirmado';D.log.push({id:uid(),pid:r.b,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Confirmó relación: '+proc(r.a).nombre+' → '+proc(r.b).nombre});persist();toast('Relación confirmada')}break}
+    case 'relDel':{const r=D.rel.find(x=>x.id===el.dataset.id);D.rel=D.rel.filter(x=>x.id!==el.dataset.id);if(r)D.log.push({id:uid(),pid:r.b,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Quitó relación: '+proc(r.a).nombre+' → '+proc(r.b).nombre});persist();toast('Relación quitada');break}
+    case 'relUn':{const r=D.rel.find(x=>x.id===el.dataset.id);if(r){r.est='Por confirmar';D.log.push({id:uid(),pid:r.b,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Volvió a «por confirmar»: '+proc(r.a).nombre+' → '+proc(r.b).nombre});persist();toast('La relación vuelve a «por confirmar»')}break}
+    case 'eRev':UI.cRev=el.dataset.key;render();break;
+    case 'eRevN':UI.cRev=null;render();break;
+    case 'eRevY':UI.cRev=null;UI.form={link:'',t:''};revertE(el.dataset.key);startEdit(el.dataset.key);render();break;
+    case 'dvDel':{const d=D.desv.find(x=>x.id===el.dataset.id);if(d){D.desv=D.desv.filter(x=>x!==d);D.log.push({id:uid(),pid:d.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Anuló el motivo «'+d.motivo+'» registrado por '+first(d.autor)+' el '+fmt(d.fecha)+': '+d.det});persist();toast('Motivo anulado')}break}
+    case 'sesDel':{const o=findSes(el.dataset.sid);if(o){D.ses[o.pid]=D.ses[o.pid].filter(x=>x!==o.s);D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Eliminó la sesión '+(SES[o.s.t]||o.s.t)+' del '+fmt(o.s.f)});UI.sesEd=null;persist();toast('Sesión eliminada')}break}
+    case 'uAdm':{const u=user(el.dataset.id);u.admin=!u.admin;persist();toast(u.nombre+(u.admin?' ahora es administrador':' ya no es administrador'));break}
+    case 'anTog':e.preventDefault();UI.anOpen=!UI.anOpen;render();break;
+    case 'exp':UI.exp[el.dataset.n]=!UI.exp[el.dataset.n];render();break;
+    case 'misF':UI.misF=el.dataset.v;render();break;
+    case 'tini':UI.tini=el.dataset.v;render();break;
+    case 'export':exportar();break;
+    case 'login':OMEGA_SP.login();break;
+    case 'logout':if(window.OMEGA_SP&&OMEGA_SP.ready())OMEGA_SP.logout();else location.reload();break;
+    case 'reload':location.reload();break;
+    case 'refresh':OMEGA_SP.refresh().then(()=>toast('Datos actualizados')).catch(err=>toast(errTxt(err)));break;
+    case 'syncRetry':OMEGA_SP.schedule(D,0);break;
+    case 'suFold':UI.setup.folders=!UI.setup.folders;scSetup();break;
+    case 'suRun':runSetup();break;
+    case 'foldLoad':loadFold(+el.dataset.pid);break;
+    case 'foldMake':{const p=proc(el.dataset.pid);UI.fold[p.id]={k:'loading'};render();OMEGA_SP.ensureProcFolders(p,SUBS).then(()=>{D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Creó las carpetas del proceso en SharePoint'});persist();loadFold(p.id)}).catch(err=>{UI.fold[p.id]={k:'error',msg:errTxt(err)};render()});break}
+    case 'useFile':if(UI.form){UI.form.link=el.dataset.url;render()}break;
+    case 'useActa':{const o=findSes(el.dataset.key);if(o){o.s.link=el.dataset.url;D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Vinculó el acta de '+(SES[o.s.t]||o.s.t)+' '+fmt(o.s.f)});persist();render()}break}
+    case 'clrF':UI.q='';UI.feq=UI.fsp=UI.fst=UI.fcr=UI.fmo=UI.fdep='all';render();break;
+    case 'goMot':UI.q='';UI.fst='all';UI.feq=UI.teq;UI.fsp=UI.tsp;UI.fcr='atr';UI.fdep='all';UI.fmo=el.dataset.v;location.hash='procesos';break;
+    case 'goDep':UI.q='';UI.fst='all';UI.feq=UI.teq;UI.fsp=UI.tsp;UI.fcr='atr';UI.fmo='all';UI.fdep=el.dataset.v;location.hash='procesos';break;
+    case 'pmRev':D.cfg.pmRevisa=!D.cfg.pmRevisa;persist();render();break;
+    case 'reset':UI.confirmReset=true;render();break;
+    case 'resetN':UI.confirmReset=false;render();break;
+    case 'resetY':D=seed();persist();setAs(UI.as);UI.confirmReset=false;UI.drawer=null;toast('Se borraron los avances. Los procesos vuelven a como están en el maestro y el cronograma.');break;
+    case 'rename':{const u=user(el.dataset.id);UI.ren={id:u.id,nombre:u.nombre};render();break}
+    case 'renX':UI.ren=null;render();break;
+    case 'delU':{const id=el.dataset.id;D.users=D.users.filter(x=>x.id!==id);persist();toast('Acceso quitado');break}
+  }
+});
+document.addEventListener('input',e=>{
+  const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
+  if(f==='suMail'){UI.setup.rows[+el.dataset.i].id=el.value;return}
+  if(f==='q'){UI.q=el.value;render()}
+  else if(f==='fl')UI.form.link=el.value;else if(f==='ft')UI.form.t=el.value;
+  else if(f==='rv')UI.rvT[el.dataset.key]=el.value;
+  else if(f==='invNombre')UI.inv.nombre=el.value;else if(f==='invId')UI.inv.id=el.value;else if(f==='renN')UI.ren.nombre=el.value;
+  else if(f==='dvDet')UI.dvF.det=el.value;else if(f==='sfF')UI.sesF.f=el.value;else if(f==='sfH')UI.sesF.h=el.value;
+  else if(f==='relN')UI.relF.n=el.value;else if(f==='mrN')UI.mrel.nota=el.value;
+});
+document.addEventListener('change',e=>{
+  const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
+  if(f==='demoFile'||f==='suFile'||f==='upE'||f==='upA'){const file=el.files&&el.files[0];if(!file)return;const ext=(file.name.match(/\.[A-Za-z0-9]+$/)||[''])[0];
+    if(f==='demoFile'){file.text().then(t=>{try{const j=JSON.parse(t);window.SEED_PROCESOS=j.procesos;window.SEED_SPRINTS=j.sprints;startDemo()}catch(err){toast('El archivo no es válido')}});return}
+    if(f==='suFile'){UI.setup.file=file;UI.setup.msg='';scSetup();return}
+    if(f==='upE'){const key=el.dataset.key;const [pid,k]=key.split(':');const p=proc(pid);const x=D.E[key];
+      uploadTo(p,SUBS[ENT[k].f],file,p.codigo+'_'+TOK[k]+'_v'+(x.ver+1)+ext).then(r=>{if(r&&UI.edit===key){UI.form.link=r.web;toast('Archivo subido. Revisa y pulsa «Cargar y enviar a revisión».')}});return}
+    if(f==='upA'){const o=findSes(el.dataset.sid);if(!o)return;const p=proc(o.pid);
+      uploadTo(p,'Actas',file,p.codigo+'_ACTA_'+o.s.f+'_'+o.s.t+ext).then(r=>{if(r){o.s.link=r.web;D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Subió el acta de '+(SES[o.s.t]||o.s.t)+' '+fmt(o.s.f)});persist();toast('Acta subida y vinculada')}});return}}
+  if(f==='rol'){setAs(el.value);UI.drawer=null;UI.edit=null;history.replaceState(null,'','#'+navs()[0][0]);render()}
+  else if(['feq','fsp','fst','fcr','fmo','fdep','revEq','teq','tsp','meq','msp'].includes(f)){UI[f]=el.value;render()}
+  else if(f==='sfT')UI.sesF.t=el.value;else if(f==='sfF')UI.sesF.f=el.value;else if(f==='sfH')UI.sesF.h=el.value;
+  else if(f==='dvMot'){UI.dvF.motivo=el.value;UI.dvF.dep=MDEP[el.value]||'IPPB';render()}else if(f==='dvDep')UI.dvF.dep=el.value;else if(f==='dvFase')UI.dvF.fase=el.value;
+  else if(f==='relT')UI.relF.t=el.value;else if(f==='relO')UI.relF.o=el.value;
+  else if(f==='mrA'){UI.mrel.a=el.value;if(UI.mrel.b===el.value)UI.mrel.b='';render()}else if(f==='mrB')UI.mrel.b=el.value;
+  else if(f==='seF'||f==='seH'||f==='seL'){const o=findSes(el.dataset.sid);if(!o)return;const s=o.s;
+    if(f==='seF'){if(!el.value)return;const old=s.f;s.f=el.value;D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Reprogramó '+SES[s.t]+': '+fmt(old)+' → '+fmt(s.f)})}
+    else if(f==='seH')s.h=el.value;
+    else{const v=el.value.trim();if(v&&!/^https?:\/\//i.test(v)){toast('El enlace debe empezar con https://');return}s.link=v;if(v)D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Subió el acta de '+SES[s.t]+' '+fmt(s.f)})}
+    persist();render()}
+  else if(f==='cfgActa'||f==='cfgRev'){const n=Math.max(0,parseInt(el.value,10)||0);D.cfg[f==='cfgActa'?'actaMin':'revDias']=n;persist();toast('Plazo actualizado')}
+  else if(f==='cfgDesde'){if(el.value){D.cfg.actasDesde=el.value;persist();toast('Actas medidas desde el '+fmt(el.value))}}
+  else if(f==='cfgHora'){if(el.value){D.cfg.horaDef=el.value;persist();toast('Hora de fin por defecto: '+el.value)}}
+  else if(f==='invRol'){UI.inv.rol=el.value;render()}else if(f==='invEq')UI.inv.eq=el.value;
+  else if(f==='peq'){const p=proc(el.dataset.pid);p.equipo=+el.value;persist();toast(p.nombre+' → Equipo '+p.equipo)}
+  else if(f==='ueq'){const u=user(el.dataset.id);u.eq=+el.value;persist();toast(u.nombre+' → Equipo '+u.eq)}
+  else if(f==='urol'){const u=user(el.dataset.id);
+    if(u.rol==='Líder de Procesos'&&el.value!=='Líder de Procesos'&&D.users.filter(x=>x.rol==='Líder de Procesos').length===1){el.value=u.rol;toast('Debe quedar al menos una Líder de Procesos');return}
+    u.rol=el.value;if(u.rol==='Consultor'&&!u.eq)u.eq=1;if(u.id===UI.as)UI.rol=u.rol;persist();toast(u.nombre+' ahora es '+u.rol)}
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();const k=e.target.dataset.form;
+  if(k==='inv'){const id=UI.inv.id.trim().toLowerCase();const nombre=UI.inv.nombre.trim();
+    if(!nombre||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(id)){toast('Escribe el nombre y un correo válido');return}
+    if(user(id)){toast('Esa persona ya tiene acceso');return}
+    D.users.push({id,nombre,rol:UI.inv.rol,eq:UI.inv.rol==='Consultor'?+UI.inv.eq:0});UI.inv.id='';UI.inv.nombre='';persist();toast('Acceso dado a '+nombre)}
+  if(k==='ren'){const u=user(UI.ren.id);const n=UI.ren.nombre.trim();if(!n){toast('Escribe un nombre');return}u.nombre=n;UI.ren=null;persist();toast('Nombre actualizado')}
+  if(k==='ses'){const S=UI.sesF;if(!S.f){toast('Elige la fecha');return}const p=proc(UI.drawer);(D.ses[p.id]=D.ses[p.id]||[]).push({id:p.id+'-'+uid(),t:S.t,f:S.f,h:S.h||'',correo:false,actaI:false,actaP:false,link:'',done:0});
+    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Agregó sesión: '+SES[S.t]+' '+fmt(S.f)+(S.h?' (fin '+S.h+')':'')});UI.sesF=null;persist();toast('Sesión agregada')}
+  if(k==='desv'){const V=UI.dvF;if(!V.det.trim()){toast('Describe el motivo del desvío');return}const p=proc(UI.drawer);
+    D.desv.push({id:uid(),pid:p.id,motivo:V.motivo,dep:V.dep,fase:V.fase,det:V.det.trim(),autor:UI.as,fecha:HOY});
+    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Desvío: '+V.motivo+' (depende de '+V.dep+') · '+V.det.trim()});UI.dvF=null;persist();toast('Motivo registrado')}
+  if(k==='rel'){const R=UI.relF;const p=proc(UI.drawer);const ok=R.t==='ant'?addRel(R.o,p.id,R.n):addRel(p.id,R.o,R.n);if(ok){UI.relF=null;render()}}
+  if(k==='mrel'){const M=UI.mrel;if(addRel(M.a,M.b,M.nota)){UI.mrel={a:'',b:'',nota:''};render()}}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.drawer!=null){UI.drawer=null;UI.edit=null;render()}});
+window.addEventListener('hashchange',()=>{if(D){render();window.scrollTo(0,0)}});
+boot();
+})();
+</script>
+
+</body>
+</html>
