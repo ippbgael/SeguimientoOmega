@@ -1,8 +1,4 @@
 {
-  "clientId": "",
-  "tenantId": "",
-  "sitio": "https://TUEMPRESA.sharepoint.com/sites/OMEGASeguimiento",
-  "lista": "OmegaDatos",
-  "biblioteca": "",
-  "carpetaRaiz": "OMEGA"
+  "supabaseUrl": "",
+  "supabaseKey": ""
 }

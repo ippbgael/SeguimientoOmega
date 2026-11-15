@@ -264,7 +264,7 @@ textarea.big{min-height:120px}
 <script>
 /* Sin datos: todo se lee desde SharePoint (ver conexion.js). */
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="conexion.js"></script>
 <script>
 (function(){
@@ -687,6 +687,12 @@ function vEquipo(){
         <input class="inp" id="inv-id" data-f="invId" placeholder="Correo corporativo" value="${esc(UI.inv.id)}">
         <div class="row" style="flex-wrap:wrap"><select class="sel" id="inv-rol" data-f="invRol" style="flex:1">${ROLES.map(r=>`<option ${UI.inv.rol===r?'selected':''}>${r}</option>`).join('')}</select>${UI.inv.rol==='Consultor'?`<select class="sel" id="inv-eq" data-f="invEq">${[1,2,3].map(n=>`<option value="${n}" ${UI.inv.eq==n?'selected':''}>Equipo ${n}</option>`).join('')}</select>`:''}<button class="btn pri" type="submit">Dar acceso</button></div>
       </form></div>
+    ${MODE==='sp'&&OMEGA_SP.kind==='password'?`<div class="card"><h2>Cómo dar acceso a alguien</h2><ol style="margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px">
+      <li>En Supabase: <b>Authentication → Users → Add user → Create new user</b>, con su correo y una contraseña temporal; marca <b>Auto Confirm User</b>.</li>
+      <li>Aquí, en <b>Dar acceso a una persona</b>: el mismo correo, su rol y su equipo.</li>
+      <li>Pásale el enlace de la página y la contraseña temporal; al entrar la cambia con el botón <b>Contraseña</b>.</li></ol>
+      <p class="note" style="margin:10px 0 0">Para quitar el acceso: <b>Quitar</b> aquí (deja de ver datos al instante) y, si ya no volverá, bórralo también en Supabase.</p></div>`:''}
+    ${isAdmin()?`<div class="card"><h2>Respaldo</h2><p style="margin:0 0 10px;font-size:13px">Descarga una copia completa de los datos y guárdala en la carpeta del proyecto en SharePoint. Recomendado cada viernes.</p><button class="btn" data-a="backup">⤓ Descargar respaldo (JSON)</button></div>`:''}
     <div class="card"><h2>Permisos por confirmar</h2>
       <button class="tog" data-a="pmRev" aria-pressed="${!!D.cfg.pmRevisa}"><i></i>El PM también puede observar o finalizar entregables</button>
       <p class="note" style="margin:10px 0 0">Líder de Procesos: ve todo, revisa (observa o finaliza), confirma relaciones y gestiona el equipo. PM: ve todo. Consultor: carga entregables, sesiones, desvíos y relaciones. Administrador (además de su rol): revierte la última carga o cambio de estado de un entregable, devuelve relaciones a «por confirmar», anula motivos y elimina sesiones; todo queda en el historial. Solo lectura: por ejemplo, Alicorp, si se decide darle acceso.</p></div>
@@ -707,7 +713,7 @@ function vDrawer(){
       ${e.vrev?`<div class="note warn">Se cargó el ${fmt(x.fc)} y la revisión debía hacerse hasta el ${fmt(e.prv)}. Este atraso es de IPPB · revisión, no del equipo.</div>`:''}`;
       if(w&&[0,1,3].includes(x.e)){
         h+=`${x.e===0?`<button class="btn sm" data-a="eElab" data-key="${key}" style="align-self:flex-start">Marcar «En elaboración»</button>`:''}
-        ${MODE==='sp'?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)">${fileSugs(p,SUBS[e.t.f],'useFile',key,TOK[e.t.k])}
+        ${hasFiles()?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)">${fileSugs(p,SUBS[e.t.f],'useFile',key,TOK[e.t.k])}
           <label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo '+esc(UI.up.name)+(UI.up.pct!=null?' · '+UI.up.pct+'%':'…'):'⤒ Subir archivo desde mi PC'}<input type="file" data-f="upE" data-key="${key}" hidden ${UI.up?'disabled':''}></label>
           <span class="muted" style="font-size:11.5px">Se guarda en «${esc(SUBS[e.t.f])}» como ${esc(p.codigo)}_${TOK[e.t.k]}_v${x.ver+1}.</span></div>`:''}
         <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl"></div>
@@ -728,7 +734,7 @@ function vDrawer(){
     const det=st.k==='pend'?`plazo hasta ${hhmm(st.pl)} · quedan ${durTxt(st.rest)}`:st.k==='venc'?`venció ${fmtTs(st.pl)} · hace ${durTxt(st.dem)}`:st.k==='tarde'?`completada ${fmtTs(s.done)} · ${durTxt(st.dem)} tarde`:st.k==='ok'?`completada ${fmtTs(s.done)}`:st.k==='prog'?'programada':st.k==='ant'?'antes de que empezara el control de actas':'registrada antes del control de actas';
     return `<div class="ses"><div class="sh"><div class="sn">${SES[s.t]||s.t}<small>${fmt(s.f)} · fin ${s.h?s.h:'sin hora ('+D.cfg.horaDef+')'} · ${det}</small></div>${chip(st.l,st.c)}${w||isAdmin()?`<button class="btn sm ghost" data-a="sesEd" data-sid="${s.id}" aria-expanded="${ed}">${ed?'Cerrar':'Editar'}</button>`:''}</div>
       <div class="cks">${[['correo','Correo enviado'],['actaI','Acta interna'],['actaP','Acta PMO-100']].map(([k,l])=>`<button class="ck" data-a="sesT" data-sid="${s.id}" data-fl="${k}" aria-pressed="${!!s[k]}" ${w||isAdmin()?'':'disabled'}>${s[k]?'✓ ':''}${l}</button>`).join('')}${s.link?`<a href="${esc(s.link)}" target="_blank" rel="noopener" class="ck" style="text-decoration:none;color:var(--accent)">Abrir acta ↗</a>`:''}</div>
-      ${ed?`<div class="three"><div><label class="flbl" for="se-f">Fecha (reprogramar)</label><input class="inp fw" id="se-f" type="date" data-f="seF" data-sid="${s.id}" value="${esc(s.f)}"></div><div><label class="flbl" for="se-h">Hora de fin</label><input class="inp fw" id="se-h" type="time" data-f="seH" data-sid="${s.id}" value="${esc(s.h)}"></div><div><label class="flbl" for="se-l">Enlace al acta</label><input class="inp fw" id="se-l" type="url" data-f="seL" data-sid="${s.id}" placeholder="https://…" value="${esc(s.link)}"></div></div>${MODE==='sp'?`${fileSugs(p,'Actas','useActa',s.id,s.f)}<label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo…':'⤒ Subir acta desde mi PC'}<input type="file" data-f="upA" data-sid="${s.id}" hidden ${UI.up?'disabled':''}></label>`:''}${isAdmin()?`<button class="btn sm ghost" data-a="sesDel" data-sid="${s.id}" style="color:var(--danger);align-self:flex-start">Eliminar esta sesión (administrador)</button>`:''}`:''}</div>`};
+      ${ed?`<div class="three"><div><label class="flbl" for="se-f">Fecha (reprogramar)</label><input class="inp fw" id="se-f" type="date" data-f="seF" data-sid="${s.id}" value="${esc(s.f)}"></div><div><label class="flbl" for="se-h">Hora de fin</label><input class="inp fw" id="se-h" type="time" data-f="seH" data-sid="${s.id}" value="${esc(s.h)}"></div><div><label class="flbl" for="se-l">Enlace al acta</label><input class="inp fw" id="se-l" type="url" data-f="seL" data-sid="${s.id}" placeholder="https://…" value="${esc(s.link)}"></div></div>${hasFiles()?`${fileSugs(p,'Actas','useActa',s.id,s.f)}<label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo…':'⤒ Subir acta desde mi PC'}<input type="file" data-f="upA" data-sid="${s.id}" hidden ${UI.up?'disabled':''}></label>`:''}${isAdmin()?`<button class="btn sm ghost" data-a="sesDel" data-sid="${s.id}" style="color:var(--danger);align-self:flex-start">Eliminar esta sesión (administrador)</button>`:''}`:''}</div>`};
   const S=UI.sesF,V=UI.dvF,RF=UI.relF;
   const lg=D.log.filter(r=>r.pid==p.id).slice().reverse().slice(0,12);
   const RL={ant:D.rel.filter(r=>r.b==p.id),suc:D.rel.filter(r=>r.a==p.id)};
@@ -770,8 +776,103 @@ let DLP=null;try{if(window.claude&&typeof window.claude.use==='function')DLP=Pro
 async function saveFile(name,buf){
   const dl=DLP?await DLP:null;
   if(dl){try{await dl.save({filename:name,data:new Blob([buf])});toast('Reporte descargado: '+name)}catch(e){toast(e&&e.code==='declined'?'Descarga cancelada':'No se pudo descargar en esta vista ('+((e&&e.code)||'error')+')')}return}
-  const b=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Reporte descargado: '+name)}
+  const b=new Blob([buf],{type:/\.json$/.test(name)?'application/json':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Descargado: '+name)}
+/* Reporte con formato (ExcelJS). Si la librería no carga, cae al reporte simple de abajo. */
+function loadXJ(){return new Promise((res,rej)=>{if(window.ExcelJS)return res(window.ExcelJS);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';s.onload=()=>window.ExcelJS?res(window.ExcelJS):rej(new Error('exceljs'));s.onerror=()=>rej(new Error('exceljs'));document.head.appendChild(s)})}
+const XC={navy:'2B3D5B',accent:'1E6FE3',band:'F7F5F0',card:'F0ECE3',line:'D9D2C3',muted:'756D5E',red:'B23A2E',redBg:'F6DED8',amber:'9A5A10',amberBg:'F9E8CF',green:'1E6E52',greenBg:'DCF2E7',blue:'1F4E9C',blueBg:'DDE8F7',orange:'A4431B',orangeBg:'FBE1D3',gray:'5E574A',grayBg:'EAE5D9',white:'FFFFFF'};
+const STX=[[XC.grayBg,XC.gray],['F7E9D2','7A4F0E'],[XC.blueBg,XC.blue],[XC.orangeBg,XC.orange],[XC.greenBg,XC.green]];
+const CRX={Atrasado:[XC.redBg,XC.red],'En plazo':[XC.blueBg,XC.blue],Finalizado:[XC.greenBg,XC.green],'Por iniciar':[XC.grayBg,XC.gray]};
+const DEPX={'Alicorp':[XC.orangeBg,XC.orange],'IPPB · consultores':['E3E8F0',XC.navy],'IPPB · revisión':[XC.blueBg,XC.blue],'Sin justificar':[XC.redBg,XC.red]};
+const ACX={'A tiempo':[XC.greenBg,XC.green],'Fuera de plazo':[XC.orangeBg,XC.orange],'Vencida':[XC.redBg,XC.red],'Pendiente':[XC.amberBg,XC.amber]};
+const xDate=s=>{if(!s)return null;const p=s.split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]))};
+const xBar=(p,n)=>{const k=Math.max(0,Math.min(n,Math.round(p*n)));return '█'.repeat(k)+'░'.repeat(n-k)};
 async function exportar(){
+  toast('Preparando el reporte…');
+  let XJ;try{XJ=await loadXJ()}catch(e){return exportarSimple()}
+  const xs=tabData();const base=UI.tini==='ini'?xs.filter(x=>x.p.ini<=HOY):xs;const atr=xs.filter(x=>x.crono.k==='atr');
+  const filtro='Equipo: '+(UI.teq==='all'?'todos':UI.teq+' ('+teamName(UI.teq)+')')+' · Sprint: '+(UI.tsp==='all'?'todos':UI.tsp)+' · Avance: '+(UI.tini==='ini'?'solo procesos iniciados':'todos los procesos');
+  const wb=new XJ.Workbook();wb.creator='Seguimiento OMEGA';wb.created=new Date();
+  const thin={style:'thin',color:{argb:'FF'+XC.line}};const box={top:thin,left:thin,bottom:thin,right:thin};
+  const fill=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
+  const font=(o={})=>({name:'Calibri',size:o.size||10,bold:!!o.bold,color:{argb:'FF'+(o.color||'2A2721')}});
+  // Tabla con encabezado azul, filas alternadas, formatos y colores por columna.
+  function table(ws,r0,c0,head,rows,opt={}){
+    head.forEach((h,j)=>{const c=ws.getCell(r0,c0+j);c.value=h;c.font=font({bold:true,color:XC.white});c.fill=fill(XC.navy);c.alignment={vertical:'middle',wrapText:true};c.border=box});
+    ws.getRow(r0).height=opt.headH||30;
+    rows.forEach((r,i)=>r.forEach((v,j)=>{const c=ws.getCell(r0+1+i,c0+j);c.value=v==null?'':v;c.border=box;c.font=font();
+      c.alignment={vertical:'top',wrapText:!!(opt.wrap&&opt.wrap.includes(j))};if(i%2)c.fill=fill(XC.band);
+      const f=opt.fmt&&opt.fmt[j];if(f)c.numFmt=f;
+      const st=opt.color&&opt.color[j];if(st){const s=st(v,r);if(s){c.fill=fill(s[0]);c.font=font({bold:true,color:s[1]})}}}));
+    if(opt.filter&&rows.length)ws.autoFilter={from:{row:r0,column:c0},to:{row:r0+rows.length,column:c0+head.length-1}};
+    return r0+rows.length+1}
+  const section=(ws,r,c,t,sub)=>{const x=ws.getCell(r,c);x.value=t;x.font=font({size:13,bold:true,color:XC.navy});if(sub){const y=ws.getCell(r+1,c);y.value=sub;y.font=font({size:9,color:XC.muted})}return r+(sub?2:1)};
+  const sheet=(name,widths,frozen)=>{const ws=wb.addWorksheet(name,{views:[{showGridLines:false,...(frozen?{state:'frozen',ySplit:frozen}:{})}]});ws.columns=widths.map(w=>({width:w}));return ws};
+  const pct=v=>v/100;const neg=v=>typeof v==='number'&&v<0?[XC.white,XC.red]:typeof v==='number'&&v>0?[XC.white,XC.green]:null;
+  const barCol=(v)=>v;
+
+  /* --- Resumen --- */
+  const R=sheet('Resumen',[2,34,14,14,14,14,14,30]);
+  R.getCell('B2').value='Seguimiento OMEGA · Reporte de avance';R.getCell('B2').font=font({size:18,bold:true,color:XC.navy});
+  R.getCell('B3').value='Generado el '+dmy(HOY)+' a las '+hhmm(Date.now())+' por '+uName(UI.as)+'  ·  '+filtro;R.getCell('B3').font=font({size:9,color:XC.muted});
+  const real=avg(base.map(x=>x.real)),esp=avg(base.map(x=>x.esp));const act=actasOf(xs);const ac=k=>act.filter(a=>a.st.k===k).length;
+  const kp=[['AVANCE REAL',real+'%','programado '+esp+'% ('+(real-esp>=0?'+':'')+(real-esp)+' pts)'],['ATRASADOS',atr.length,'de '+xs.filter(x=>x.p.ini<=HOY).length+' procesos iniciados'],['POR ALICORP',atr.filter(x=>x.causa==='alicorp').length,'atrasos que dependen del cliente'],['EN REVISIÓN',xs.reduce((s,x)=>s+x.cnt[2],0),'entregables con '+first(lider().id)],['OBSERVADOS',xs.reduce((s,x)=>s+x.cnt[3],0),'devueltos al consultor'],['ACTAS VENCIDAS',ac('venc'),ac('tarde')+' entregadas fuera de plazo']];
+  kp.forEach((k,i)=>{const col=2+i+(i>0?0:0);const cells=[R.getCell(5,col),R.getCell(6,col),R.getCell(7,col)];
+    cells.forEach(c=>{c.fill=fill(XC.card);c.alignment={vertical:'middle',horizontal:'left',wrapText:true,indent:1}});
+    cells[0].value=k[0];cells[0].font=font({size:8,bold:true,color:XC.muted});cells[1].value=k[1];cells[1].font=font({size:20,bold:true,color:i===1||i===5?XC.red:XC.navy});cells[2].value=k[2];cells[2].font=font({size:8,color:XC.muted});
+    cells[0].border={top:{style:'medium',color:{argb:'FF'+(i===1||i===5?XC.red:XC.accent)}},left:thin,right:thin};cells[1].border={left:thin,right:thin};cells[2].border={bottom:thin,left:thin,right:thin}});
+  R.getRow(5).height=18;R.getRow(6).height=32;R.getRow(7).height=30;
+  // B es ancha para las tablas; la tarjeta 1 también, el resto quedan uniformes.
+  let r=9;
+  const grp=(l,it)=>{const re=avg(it.map(x=>x.real)),e=avg(it.map(x=>x.esp));return [l,it.length,pct(e),pct(re),re-e,it.filter(x=>x.crono.k==='atr').length,xBar(re/100,20)]};
+  const H1=['Grupo','Procesos','Programado','Real','Desvío (pts)','Atrasados','Avance real'];
+  const gO={fmt:{2:'0%',3:'0%',4:'+0;-0;0'},color:{4:neg,6:()=>[XC.white,XC.accent]}};
+  r=section(R,r,2,'Programado vs. real por equipo',UI.tini==='ini'?'Solo procesos que ya debieron empezar':'Todos los procesos del filtro');
+  const gE=[1,2,3].map(n=>[n,base.filter(x=>x.p.equipo===n)]).filter(([,it])=>it.length).map(([n,it])=>grp('Equipo '+n+' · '+teamName(n),it));gE.push(grp('Total',base));
+  r=table(R,r,2,H1,gE,gO);R.getRow(r-1).eachCell(c=>{c.font={...c.font,bold:true}});r++;
+  r=section(R,r,2,'Programado vs. real por sprint');
+  r=table(R,r,2,H1,D.SP.map(sp=>[sp,base.filter(x=>x.p.sprint===sp.n)]).filter(([,it])=>it.length).map(([sp,it])=>grp('Sprint '+sp.n+' · '+fmt(sp.ini)+' – '+fmt(sp.fin),it)),gO)+1;
+  r=section(R,r,2,'¿De quién depende el atraso?',atr.length+' procesos atrasados');
+  r=table(R,r,2,['Responsable','Procesos','% de atrasos','','','','Proporción'],Object.entries(CAUSAS).map(([k,c])=>{const n=atr.filter(x=>x.causa===k).length;const p=atr.length?n/atr.length:0;return [c.l,n,p,'','','',xBar(p,20)]}),{fmt:{2:'0%'},color:{0:v=>DEPX[v]||null,6:(v,row)=>[XC.white,(DEPX[row[0]]||[0,XC.navy])[1]]}})+1;
+  r=section(R,r,2,'Atrasos por motivo');
+  const mr=motivoRows(atr);const mmax=Math.max(1,...mr.map(m=>m.v));
+  r=table(R,r,2,['Motivo','Procesos','Depende de','','','','Cantidad'],mr.map(m=>[m.l,m.v,m.dep,'','','',xBar(m.v/mmax,20)]),{color:{6:()=>[XC.white,XC.orange]}})+1;
+  r=section(R,r,2,'Actas de sesiones','Plazo: '+D.cfg.actaMin+' minutos después de terminar la sesión · medidas desde el '+dmy(D.cfg.actasDesde));
+  const amax=Math.max(1,...Object.keys(SESK).map(ac));
+  r=table(R,r,2,['Estado','Sesiones','','','','',''],Object.entries(SESK).map(([k,s])=>[s.l,ac(k),'','','','',xBar(ac(k)/amax,20)]),{color:{0:v=>ACX[v.replace('Completada a tiempo','A tiempo').replace('Completada fuera de plazo','Fuera de plazo')]||null}});
+  /* --- Atrasados (lo que se presenta a gerencia) --- */
+  const A=sheet('Atrasados',[16,44,8,8,20,30,48,30,12,10],1);
+  table(A,1,1,['Código N4','Proceso','Sprint','Equipo','Depende de','Motivo','Detalle','Entregables vencidos o sin revisar','Programado','Real'],
+    atr.slice().sort((a,b)=>Object.keys(CAUSAS).indexOf(a.causa)-Object.keys(CAUSAS).indexOf(b.causa)||a.p.ini.localeCompare(b.p.ini)).map(x=>[x.p.codigo,x.p.nombre,x.p.sprint,x.p.equipo,CAUSAS[x.causa].l,x.motivo,x.causa==='alicorp'||x.causa==='ippb_eq'?x.ult.det:'',x.venc.map(e=>e.t.l).concat(x.vrev.map(e=>e.t.l+' (revisión)')).join(', '),pct(x.esp),pct(x.real)]),
+    {wrap:[1,5,6,7],fmt:{8:'0%',9:'0%'},color:{4:v=>DEPX[v]||null},filter:true});
+  /* --- Procesos --- */
+  const relTxt=(pid,side)=>D.rel.filter(q=>side==='ant'?q.b===pid:q.a===pid).map(q=>proc(side==='ant'?q.a:q.b).codigo+(q.est==='Confirmado'?'':' (por confirmar)')).join(', ');
+  const P=sheet('Procesos',[16,44,8,8,18,12,12,26,28,12,10,11,14,18,26,22,22],1);
+  table(P,1,1,['Código N4','Proceso','Sprint','Equipo','Consultores','Inicio plan','Fin plan','Etapa actual','Con quién','Programado','Real','Desvío (pts)','Cronograma','Depende de','Motivo','Antecesores','Sucesores'],
+    xs.map(x=>[x.p.codigo,x.p.nombre,x.p.sprint,x.p.equipo,teamName(x.p.equipo),xDate(x.p.ini),xDate(x.p.fin),x.etapa,x.quien,pct(x.esp),pct(x.real),x.desv,x.crono.l,x.causa?CAUSAS[x.causa].l:'',x.motivo,relTxt(x.p.id,'ant'),relTxt(x.p.id,'suc')]),
+    {wrap:[1,8,14],fmt:{5:'dd/mm/yyyy',6:'dd/mm/yyyy',9:'0%',10:'0%',11:'+0;-0;0'},color:{11:neg,12:v=>CRX[v]||null,13:v=>DEPX[v]||null},filter:true});
+  /* --- Entregables --- */
+  const En=sheet('Entregables',[16,40,8,24,34,12,15,30,12,12,8,12,12,18,40,40],1);
+  table(En,1,1,['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿A tiempo?','Revisar hasta','Vencido','Observación','Enlace'],
+    xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,xDate(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),xDate(e.x.fc1),xDate(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',xDate(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link?{text:'Abrir archivo',hyperlink:e.x.link}:''])),
+    {wrap:[1,4,14],fmt:{5:'dd/mm/yyyy',8:'dd/mm/yyyy',9:'dd/mm/yyyy',12:'dd/mm/yyyy'},color:{6:v=>{const i=ST.findIndex(s=>s.l===v);return i>=0?STX[i]:null},11:v=>v==='No'?[XC.orangeBg,XC.orange]:null,13:v=>v?[XC.redBg,XC.red]:null},filter:true});
+  /* --- Actas --- */
+  const Ac=sheet('Actas',[16,40,8,24,12,10,18,22,9,11,12,18,12,20],1);
+  table(Ac,1,1,['Código N4','Proceso','Equipo','Sesión','Fecha','Hora fin','Plazo del acta','Estado','Correo','Acta interna','Acta PMO-100','Completada','Demora (h)','Acta'],
+    act.slice().sort((a,b)=>a.s.f.localeCompare(b.s.f)).map(a=>[a.p.codigo,a.p.nombre,a.p.equipo,SES[a.s.t]||a.s.t,xDate(a.s.f),a.s.h||D.cfg.horaDef+'*',dmy(iso(new Date(a.st.pl)))+' '+hhmm(a.st.pl),a.st.l,a.s.correo?'Sí':'No',a.s.actaI?'Sí':'No',a.s.actaP?'Sí':'No',a.s.done?dmy(iso(new Date(a.s.done)))+' '+hhmm(a.s.done):'',a.st.dem?Math.round(a.st.dem/36e5*10)/10:'',a.s.link?{text:'Abrir acta',hyperlink:a.s.link}:'']),
+    {wrap:[1],fmt:{4:'dd/mm/yyyy'},color:{7:v=>ACX[v]||null,8:v=>v==='No'?[XC.grayBg,XC.gray]:null,9:v=>v==='No'?[XC.grayBg,XC.gray]:null,10:v=>v==='No'?[XC.grayBg,XC.gray]:null},filter:true});
+  /* --- Desvíos y relaciones --- */
+  const Dv=sheet('Desvíos',[12,16,40,8,26,32,14,50,20],1);
+  table(Dv,1,1,['Fecha','Código N4','Proceso','Equipo','Fase','Motivo','Depende de','Detalle','Registrado por'],
+    D.desv.filter(d=>xs.some(x=>x.p.id===d.pid)).map(d=>{const p=proc(d.pid);return [xDate(d.fecha),p.codigo,p.nombre,p.equipo,'F'+(+d.fase+1)+' · '+FASES[d.fase],d.motivo,d.dep||MDEP[d.motivo]||'',d.det,uName(d.autor)]}),
+    {wrap:[2,7],fmt:{0:'dd/mm/yyyy'},color:{6:v=>v==='Alicorp'?DEPX.Alicorp:v==='IPPB'?DEPX['IPPB · consultores']:null},filter:true});
+  const Rl=sheet('Relaciones',[16,40,16,40,14,30,20,12],1);
+  table(Rl,1,1,['Antecesor','Proceso antecesor','Sucesor','Proceso sucesor','Estado','De dónde sale','Registrado por','Fecha'],
+    D.rel.map(q=>{const a=proc(q.a),b=proc(q.b);return [a.codigo,a.nombre,b.codigo,b.nombre,q.est,q.nota,uName(q.autor),xDate(q.fecha)]}),
+    {wrap:[1,3,5],fmt:{7:'dd/mm/yyyy'},color:{4:v=>v==='Confirmado'?[XC.greenBg,XC.green]:[XC.amberBg,XC.amber]},filter:true});
+  const buf=await wb.xlsx.writeBuffer();
+  await saveFile('Seguimiento_OMEGA_'+HOY+(UI.tsp!=='all'?'_S'+UI.tsp:'')+(UI.teq!=='all'?'_Eq'+UI.teq:'')+'.xlsx',buf);
+}
+async function exportarSimple(){
   toast('Preparando el reporte…');
   let X;try{X=await loadXL()}catch(e){toast('No se pudo cargar el generador de Excel. Revisa tu conexión.');return}
   const xs=tabData();const base=UI.tini==='ini'?xs.filter(x=>x.p.ini<=HOY):xs;const atr=xs.filter(x=>x.crono.k==='atr');
@@ -825,31 +926,52 @@ function render(){
     <nav class="nav">${nav.map(([id,l,ic])=>`<button data-a="go" data-v="${id}" ${id===v?'aria-current="page"':''}><span class="ic">${ic}</span>${l}${badge(id)}</button>`).join('')}</nav>
     <div class="me"><span class="av">${ini(u.nombre)}</span><div style="min-width:0"><b>${esc(u.nombre)}</b><span>${esc(UI.rol)}${u.rol==='Consultor'?' · Equipo '+u.eq:''}${u.admin?' · Admin':''}</span></div></div></aside>
   <main><header class="top">${LOGO('mlogo')}<div class="tgrow"><h1>${TITLES[v][0]}</h1><div class="sub">${DIAS[d.getDay()]} ${fmt(HOY)} · ${TITLES[v][1]}</div></div>
-    ${MODE==='sp'?`<div class="demo">${syncChip()}<button class="btn sm ghost" data-a="refresh" title="Traer los últimos cambios de SharePoint">↻ Actualizar</button><button class="btn sm ghost" data-a="logout">Salir</button></div>`
+    ${MODE==='sp'?`<div class="demo">${syncChip()}<button class="btn sm ghost" data-a="refresh" title="Traer los últimos cambios de los demás">↻ Actualizar</button>${OMEGA_SP.changePassword?'<button class="btn sm ghost" data-a="pwOpen">Contraseña</button>':''}<button class="btn sm ghost" data-a="logout">Salir</button></div>`
     :`<div class="demo"><span class="pill">Demo</span><label class="muted" for="rol" style="font-size:12px">Ver como</label><select class="sel" id="rol" data-f="rol" style="max-width:240px">${D.users.map(x=>`<option value="${esc(x.id)}" ${UI.as===x.id?'selected':''}>${esc(x.nombre)} · ${esc(x.rol)}</option>`).join('')}</select>
     ${UI.confirmReset?`<button class="btn sm" data-a="resetY" style="background:var(--danger-bg);color:var(--danger)">Sí, borrar todo</button><button class="btn sm ghost" data-a="resetN">No</button>`:`<button class="btn sm ghost" data-a="reset">Reiniciar demo</button>`}</div>`}</header>
   <div class="view">${body}</div></main></div>
   <nav class="mnav">${nav.map(([id,l,ic])=>`<button data-a="go" data-v="${id}" ${id===v?'aria-current="page"':''}><span class="ic">${ic}</span>${l}</button>`).join('')}</nav>
-  ${UI.drawer!=null?vDrawer():''}${UI.toast?`<div class="toast" role="status">${esc(UI.toast)}</div>`:''}`;
+  ${UI.drawer!=null?vDrawer():''}${pwModal()}${UI.toast?`<div class="toast" role="status">${esc(UI.toast)}</div>`:''}`;
   const nd=document.querySelector('.dbody');if(nd&&dTop)nd.scrollTop=dTop;
   if(fid){const el=document.getElementById(fid);if(el){el.focus({preventScroll:true});if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(e){}}}
 }
 let tT;function toast(t){UI.toast=t;render();clearTimeout(tT);tT=setTimeout(()=>{UI.toast='';render()},3000)}
 // Los estados de las actas dependen de la hora: refresca cada minuto si no se está escribiendo.
 setInterval(()=>{if(!D)return;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render()},60000);
-function syncChip(){const s=UI.sync;return s.k==='saving'?chip('Guardando…','e2'):s.k==='error'?`<span class="chip st-b" title="${esc(s.msg)}">No se pudo guardar</span><button class="btn sm" data-a="syncRetry">Reintentar</button>`:chip('Guardado en SharePoint','e4')}
+function syncChip(){const s=UI.sync;return s.k==='saving'?chip('Guardando…','e2'):s.k==='error'?`<span class="chip st-b" title="${esc(s.msg)}">No se pudo guardar</span><button class="btn sm" data-a="syncRetry">Reintentar</button>`:chip('Guardado','e4')}
 
 /* ---------- Pantallas antes de entrar (solo versión publicada en GitHub) ---------- */
 function screen(html){UI.screen=html;D=null;render()}
 const card=(t,body)=>`<div style="min-height:100vh;display:grid;place-items:center;padding:24px 16px"><div class="card" style="max-width:640px;width:100%;display:flex;flex-direction:column;gap:14px">${LOGO('logo')}<h1 style="font-size:22px">${t}</h1>${body}</div></div>`;
 function scLoading(t){screen(card('Seguimiento OMEGA',`<p class="muted" style="margin:0">${esc(t)}</p>`))}
-function scNoConfig(){screen(card('Falta configurar la conexión',`<p style="margin:0">El archivo <code>config.json</code> del repositorio no tiene el <b>clientId</b>, el <b>tenantId</b> o el <b>sitio</b>. Complétalo con los datos del registro de la app (paso 2 de la guía) y vuelve a cargar la página.</p>
+function scNoConfig(){screen(card('Falta configurar la conexión',`<p style="margin:0">El archivo <code>config.json</code> del repositorio no tiene ${OMEGA_SP.kind==='password'?'la <b>supabaseUrl</b> o la <b>supabaseKey</b>. Complétalo con los datos de tu proyecto de Supabase (Project Settings → API)':'el <b>clientId</b>, el <b>tenantId</b> o el <b>sitio</b>. Complétalo con los datos del registro de la app'} y vuelve a cargar la página.</p>
   <div class="note">Mientras tanto puedes probar en <b>modo demo</b>: elige el archivo <code>omega-datos-iniciales.json</code> de tu PC. Los datos quedan solo en este navegador.</div>
   <label class="btn" style="align-self:flex-start">Abrir modo demo con un archivo…<input type="file" accept=".json" data-f="demoFile" hidden></label>`))}
-function scLogin(){screen(card('Seguimiento OMEGA',`<p style="margin:0">Entra con tu cuenta de IPPB. La plataforma lee y guarda en el SharePoint del proyecto con tus propios permisos.</p><button class="btn pri" data-a="login" style="align-self:flex-start">Entrar con Microsoft</button>`))}
+function scLogin(){
+  if(OMEGA_SP.kind!=='password'){screen(card('Seguimiento OMEGA',`<p style="margin:0">Entra con tu cuenta de IPPB. La plataforma lee y guarda en el SharePoint del proyecto con tus propios permisos.</p><button class="btn pri" data-a="login" style="align-self:flex-start">Entrar con Microsoft</button>`));return}
+  const L=UI.lg=UI.lg||{e:'',p:'',msg:'',err:false,busy:false};
+  screen(card('Seguimiento OMEGA',`<p style="margin:0">Entra con tu correo y la contraseña que te dio el administrador.</p>
+  <form data-form="login" style="display:flex;flex-direction:column;gap:10px">
+    <div><label class="flbl" for="lg-e">Correo</label><input class="inp fw" id="lg-e" type="email" autocomplete="username" data-f="lgE" value="${esc(L.e)}" required></div>
+    <div><label class="flbl" for="lg-p">Contraseña</label><input class="inp fw" id="lg-p" type="password" autocomplete="current-password" data-f="lgP" value="${esc(L.p)}"></div>
+    ${L.msg?`<div class="note ${L.err?'bad':'info'}">${esc(L.msg)}</div>`:''}
+    <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="submit" ${L.busy?'disabled':''}>${L.busy?'Entrando…':'Entrar'}</button><button type="button" class="btn ghost" data-a="forgot">Olvidé mi contraseña</button></div>
+  </form>`))}
+function pwModal(){const P=UI.pw;if(!P)return '';return `<div class="drawer-bg" data-a="pwX"></div><div role="dialog" aria-modal="true" aria-label="Cambiar contraseña" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:35;width:min(420px,calc(100% - 32px))" class="card">
+  <form data-form="pw" style="display:flex;flex-direction:column;gap:10px"><h2 style="margin:0">Cambiar contraseña</h2>
+  <div><label class="flbl" for="pw-a">Nueva contraseña (mínimo 8 caracteres)</label><input class="inp fw" id="pw-a" type="password" autocomplete="new-password" data-f="pwA" value="${esc(P.a)}"></div>
+  <div><label class="flbl" for="pw-b">Repítela</label><input class="inp fw" id="pw-b" type="password" autocomplete="new-password" data-f="pwB" value="${esc(P.b)}"></div>
+  ${P.msg?`<div class="note ${P.err?'bad':'info'}">${esc(P.msg)}</div>`:''}
+  <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="pwX">Cancelar</button><button class="btn pri" type="submit">Guardar</button></div></form></div>`}
 function scError(e){screen(card('No se pudo conectar',`<p style="margin:0">${esc(errTxt(e))}</p><div class="note">Toma una captura de este mensaje para soporte. Detalle técnico: ${esc(String(e&&e.message||e))}</div><div class="row"><button class="btn pri" data-a="reload">Reintentar</button><button class="btn ghost" data-a="logout">Salir y entrar con otra cuenta</button></div>`))}
 function scNoAccess(me){screen(card('Todavía no tienes acceso',`<p style="margin:0">Entraste como <b>${esc(me)}</b>, pero ese correo no está en la lista de usuarios de la plataforma.</p><div class="note">Pide a Jenny o a Gael que te agreguen en <b>Equipo → Dar acceso</b> con este mismo correo, exactamente como aparece aquí.</div><button class="btn ghost" data-a="logout" style="align-self:flex-start">Salir</button>`))}
 function errTxt(e){const s=e&&e.status;const m=String(e&&e.message||e);
+  if(/Invalid login credentials/i.test(m))return 'Correo o contraseña incorrectos.';
+  if(/Email not confirmed/i.test(m))return 'Tu usuario no está confirmado. Pide al administrador que lo marque como confirmado en Supabase.';
+  if(/row-level security|permission denied|No tienes permiso|42501/i.test(m)||(e&&e.code==='42501'))return 'No tienes permiso para este cambio. Si crees que deberías tenerlo, revisa tu rol en Equipo.';
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'No hay conexión con el servidor. Revisa tu internet; si sigue igual, el proyecto de Supabase puede estar en pausa (el administrador lo reactiva con «Restore project»).';
+  if(/rate limit|too many/i.test(m))return 'Demasiados intentos seguidos. Espera unos minutos.';
+  if(/Password should be/i.test(m))return 'La contraseña es muy corta o simple. Usa al menos 8 caracteres.';
   if(/AADSTS65001|consent/i.test(m))return 'Falta aprobar los permisos de la app. Si al entrar no te apareció la pantalla «Permisos solicitados», un administrador de Microsoft 365 debe pulsar «Grant admin consent» en el registro de la app.';
   if(/AADSTS50011|redirect/i.test(m))return 'La dirección de esta página no coincide con la «Redirect URI» del registro de la app. Deben ser idénticas, incluida la barra final.';
   if(/AADSTS700016|application.*not found/i.test(m))return 'El clientId o el tenantId de config.json no son correctos.';
@@ -859,12 +981,12 @@ function errTxt(e){const s=e&&e.status;const m=String(e&&e.message||e);
   return 'Ocurrió un error al hablar con Microsoft 365.'}
 function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map(u=>({...u,id:''})),file:null,folders:true,busy:false,msg:''};const S=UI.setup;
   if(!S.rows.some(r=>r.id))S.rows.find(r=>r.nombre.startsWith('Gael')).id=me;
-  screen(card('Configurar la plataforma (una sola vez)',`<p style="margin:0">El sitio todavía no tiene los datos de OMEGA. Esto crea la lista <b>${esc(OMEGA_SP.cfg().lista)}</b>, carga los 55 procesos con su cronograma y, si lo marcas, arma las carpetas.</p>
+  screen(card('Configurar la plataforma (una sola vez)',`<p style="margin:0">La base todavía no tiene los datos de OMEGA. Esto carga los 55 procesos con su cronograma, sus entregables y sesiones, y la lista de personas con su rol.</p>
   <div class="sect">1 · Correos de las personas</div><p class="muted" style="margin:0;font-size:12.5px">Tu cuenta es <b>${esc(me)}</b>. Escribe el correo con el que cada persona entra a Microsoft 365.</p>
   <div class="rows" style="gap:6px">${S.rows.map((r,i)=>`<div class="row" style="flex-wrap:wrap;gap:8px"><div class="lbl" style="width:150px">${esc(r.nombre)}<small>${esc(r.rol)}${r.eq?' · Equipo '+r.eq:''}</small></div><input class="inp" style="flex:1;min-width:200px" type="email" id="su-${i}" data-f="suMail" data-i="${i}" placeholder="nombre@ippb..." value="${esc(r.id)}"></div>`).join('')}</div>
-  <div class="sect">2 · Archivo de datos iniciales</div><p class="muted" style="margin:0;font-size:12.5px">Elige <code>omega-datos-iniciales.json</code> desde tu PC. Se lee en tu navegador y va directo a SharePoint; no se sube a GitHub.</p>
+  <div class="sect">2 · Archivo de datos iniciales</div><p class="muted" style="margin:0;font-size:12.5px">Elige <code>omega-datos-iniciales.json</code> desde tu PC. Se lee en tu navegador y va directo a la base de datos; no se sube a GitHub.</p>
   <label class="btn" style="align-self:flex-start">${S.file?'✓ '+esc(S.file.name):'Elegir archivo…'}<input type="file" accept=".json" data-f="suFile" hidden></label>
-  <div class="sect">3 · Carpetas</div><button class="tog" data-a="suFold" aria-pressed="${S.folders}"><i></i>Crear la estructura de carpetas de los 55 procesos (unos minutos)</button>
+  ${OMEGA_SP.folderInfo?`<div class="sect">3 · Carpetas</div><button class="tog" data-a="suFold" aria-pressed="${S.folders}"><i></i>Crear la estructura de carpetas de los 55 procesos (unos minutos)</button>`:''}
   ${S.msg?`<div class="note ${S.err?'bad':'info'}">${esc(S.msg)}</div>`:''}
   <button class="btn pri" data-a="suRun" ${S.busy?'disabled':''} style="align-self:flex-start">${S.busy?'Configurando…':'Configurar'}</button>`))}
 
@@ -873,21 +995,26 @@ async function boot(){
   if(window.SEED_PROCESOS){startDemo();return}
   scLoading('Cargando…');
   let c=null;try{c=await (await fetch('config.json',{cache:'no-store'})).json()}catch(e){}
-  if(!c||!c.clientId||!c.tenantId||!c.sitio){scNoConfig();return}
-  if(!window.OMEGA_SP||!window.msal){scError(new Error('No se cargó conexion.js o la librería de Microsoft (msal). Revisa tu conexión a internet.'));return}
+  if(!window.OMEGA_SP){scError(new Error('No se cargó conexion.js. Revisa tu conexión a internet.'));return}
+  if(!OMEGA_SP.configOk(c)){scNoConfig();return}
+  if(!OMEGA_SP.libOk()){scError(new Error('No se cargó la librería de '+OMEGA_SP.nombre+'. Revisa tu conexión a internet.'));return}
   try{const acc=await OMEGA_SP.init(c);if(!acc){scLogin();return}await openReal()}catch(e){scError(e)}
 }
 async function openReal(){
-  scLoading('Conectando con SharePoint…');
+  scLoading('Conectando…');
   OMEGA_SP.onStatus(s=>{UI.sync=s;if(D)render()});
-  await OMEGA_SP.connect();
-  const data=await OMEGA_SP.loadAll();
-  if(!data){scSetup();return}
+  let data;
+  try{await OMEGA_SP.connect();data=await OMEGA_SP.loadAll()}
+  catch(e){if(e&&e.code==='noaccess'){scNoAccess(OMEGA_SP.email());return}throw e}
+  if(!data){if(OMEGA_SP.esGestor())scSetup();else screen(card('La plataforma aún no está configurada',`<p style="margin:0">Un administrador debe entrar primero y cargar los procesos. Vuelve a intentarlo más tarde.</p><button class="btn ghost" data-a="logout" style="align-self:flex-start">Salir</button>`));return}
   const me=OMEGA_SP.email();const u=data.users.find(x=>x.id===me);
   if(!u){scNoAccess(me);return}
   MODE='sp';UI.screen='';start(data,u.id);
+  if(OMEGA_SP.recovery())UI.pw={a:'',b:'',msg:'Escribe tu nueva contraseña.'};
   OMEGA_SP.watch(nd=>{const a=document.activeElement;D=norm(nd);setAs(UI.as);if(!(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)))render()});
+  render();
 }
+const hasFiles=()=>MODE==='sp'&&!!(window.OMEGA_SP&&OMEGA_SP.folderInfo);
 async function runSetup(){const S=UI.setup;
   const rows=S.rows.map(r=>({...r,id:r.id.trim().toLowerCase()}));
   if(rows.some(r=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.id))){S.msg='Completa un correo válido para cada persona.';S.err=true;scSetup();return}
@@ -909,7 +1036,7 @@ const SUBS=['01 AS IS','02 TO BE','03 Funcional','04 Validación','Actas'];
 const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'PROCEDIMIENTOS',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
 async function loadFold(pid){UI.fold[pid]={k:'loading'};render();
   try{UI.fold[pid]=await OMEGA_SP.folderInfo(proc(pid),SUBS)}catch(e){UI.fold[pid]={k:'error',msg:errTxt(e)}}render()}
-function foldPanel(p,w){if(MODE!=='sp')return '';const F=UI.fold[p.id];
+function foldPanel(p,w){if(!hasFiles())return '';const F=UI.fold[p.id];
   const head=`<div class="sect">Carpeta en SharePoint <span>${esc(OMEGA_SP.procPath(p))}</span>${!F||F.k==='error'?`<button class="btn sm" data-a="foldLoad" data-pid="${p.id}">Ver archivos</button>`:F.k==='ok'?`<button class="btn sm ghost" data-a="foldLoad" data-pid="${p.id}">↻</button>`:''}</div>`;
   if(!F)return head;
   if(F.k==='loading')return head+'<div class="note">Buscando la carpeta…</div>';
@@ -917,7 +1044,7 @@ function foldPanel(p,w){if(MODE!=='sp')return '';const F=UI.fold[p.id];
   if(F.k==='none')return head+`<div class="note">La carpeta de este proceso todavía no existe.${w||isAdmin()?'':' Pide al equipo que la cree.'}</div>${w||isAdmin()?`<button class="btn sm" data-a="foldMake" data-pid="${p.id}" style="align-self:flex-start">Crear carpetas del proceso</button>`:''}`;
   return head+`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"><a href="${esc(F.web)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;font-size:13px">Abrir la carpeta en SharePoint ↗</a>
     ${SUBS.map(s=>{const fs=F.subs[s];return `<div style="font-size:12.5px"><b>${esc(s)}</b> ${fs==null?'<span class="muted">· no existe</span>':fs.length?'':'<span class="muted">· vacía</span>'}${(fs||[]).map(f=>`<div class="row" style="gap:6px;padding-left:10px"><a href="${esc(f.web)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(f.name)}</a><span class="muted" style="font-size:11.5px">${fmt(f.mod.slice(0,10))} · ${esc(f.by||'')}</span></div>`).join('')}</div>`}).join('')}</div>`}
-function fileSugs(p,sub,act,key,tok){if(MODE!=='sp')return '';const F=UI.fold[p.id];
+function fileSugs(p,sub,act,key,tok){if(!hasFiles())return '';const F=UI.fold[p.id];
   if(!F||F.k!=='ok')return `<button class="btn sm ghost" data-a="foldLoad" data-pid="${p.id}" style="align-self:flex-start">Buscar archivos en la carpeta «${esc(sub)}»</button>`;
   const fs=(F.subs[sub]||[]).slice().sort((a,b)=>(tok&&b.name.toUpperCase().includes(tok))-(tok&&a.name.toUpperCase().includes(tok))||b.mod.localeCompare(a.mod));
   return fs.length?`<div style="display:flex;flex-direction:column;gap:4px"><span class="flbl" style="margin:0">Archivos en «${esc(sub)}»</span>${fs.slice(0,6).map(f=>`<div class="row" style="gap:8px;font-size:12.5px"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(f.name)} <span class="muted">· ${fmt(f.mod.slice(0,10))}</span></span><button class="btn sm" data-a="${act}" data-key="${esc(key)}" data-url="${esc(f.web)}">Usar</button></div>`).join('')}</div>`:`<div class="note">La carpeta «${esc(sub)}» está vacía${F.subs[sub]==null?' o no existe':''}.</div>`}
@@ -988,6 +1115,11 @@ document.addEventListener('click',e=>{
     case 'tini':UI.tini=el.dataset.v;render();break;
     case 'export':exportar();break;
     case 'login':OMEGA_SP.login();break;
+    case 'forgot':{const L=UI.lg;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(L.e.trim())){L.msg='Escribe tu correo arriba y vuelve a pulsar «Olvidé mi contraseña».';L.err=true;scLogin();break}
+      OMEGA_SP.resetPassword(L.e).then(()=>{L.msg='Si el correo está registrado, te llegará un enlace para crear una contraseña nueva.';L.err=false;scLogin()}).catch(err=>{L.msg=errTxt(err);L.err=true;scLogin()});break}
+    case 'pwOpen':UI.pw={a:'',b:'',msg:''};render();break;
+    case 'pwX':UI.pw=null;render();break;
+    case 'backup':saveFile('respaldo_OMEGA_'+HOY+'.json',JSON.stringify({version:1,generado:new Date().toISOString(),datos:D}));break;
     case 'logout':if(window.OMEGA_SP&&OMEGA_SP.ready())OMEGA_SP.logout();else location.reload();break;
     case 'reload':location.reload();break;
     case 'refresh':OMEGA_SP.refresh().then(()=>toast('Datos actualizados')).catch(err=>toast(errTxt(err)));break;
@@ -1013,6 +1145,8 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
   if(f==='suMail'){UI.setup.rows[+el.dataset.i].id=el.value;return}
+  if(f==='lgE'){UI.lg.e=el.value;return}if(f==='lgP'){UI.lg.p=el.value;return}
+  if(f==='pwA'){UI.pw.a=el.value;return}if(f==='pwB'){UI.pw.b=el.value;return}
   if(f==='q'){UI.q=el.value;render()}
   else if(f==='fl')UI.form.link=el.value;else if(f==='ft')UI.form.t=el.value;
   else if(f==='rv')UI.rvT[el.dataset.key]=el.value;
@@ -1052,6 +1186,10 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('submit',e=>{
   e.preventDefault();const k=e.target.dataset.form;
+  if(k==='login'){const L=UI.lg;if(!L.e.trim()||!L.p){L.msg='Escribe tu correo y tu contraseña.';L.err=true;scLogin();return}
+    L.busy=true;L.msg='';scLogin();OMEGA_SP.login(L.e,L.p).then(()=>{UI.lg=null;return openReal()}).catch(err=>{L.busy=false;L.msg=errTxt(err);L.err=true;L.p='';scLogin()});return}
+  if(k==='pw'){const P=UI.pw;if(P.a.length<8){P.msg='Usa al menos 8 caracteres.';P.err=true;render();return}if(P.a!==P.b){P.msg='Las dos contraseñas no coinciden.';P.err=true;render();return}
+    OMEGA_SP.changePassword(P.a).then(()=>{UI.pw=null;toast('Contraseña actualizada')}).catch(err=>{P.msg=errTxt(err);P.err=true;render()});return}
   if(k==='inv'){const id=UI.inv.id.trim().toLowerCase();const nombre=UI.inv.nombre.trim();
     if(!nombre||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(id)){toast('Escribe el nombre y un correo válido');return}
     if(user(id)){toast('Esa persona ya tiene acceso');return}
