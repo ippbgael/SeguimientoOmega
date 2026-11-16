@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Seguimiento OMEGA</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='99 625 690 690'><rect x='99' y='625' width='690' height='690' rx='150' fill='%23fff'/><path d='M171 743Q180 734 189 743L219 773Q228 782 219 791L189 821Q180 830 171 821L141 791Q132 782 141 773Z' fill='%230A72EA'/><path d='M142 875H218V1202H142Z' fill='%23324661'/><path d='M292 1202V775H625C700 775 750 830 750 927C750 1025 700 1080 625 1080H369V1202ZM369 850V1003H595C650 1003 672 975 672 927C672 880 650 850 595 850Z' fill='%230A72EA' fill-rule='evenodd'/></svg>">
 </head>
 <body>
 <title>Seguimiento OMEGA</title>
@@ -998,7 +1000,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-15 23:55:08';
+const BUILD='2026-11-16 00:34:11';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
