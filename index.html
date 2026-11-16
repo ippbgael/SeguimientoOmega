@@ -50,6 +50,8 @@ button:disabled{cursor:default}
 .side{width:240px;flex-shrink:0;background:var(--surface);box-shadow:4px 0 20px rgba(0,0,0,.06);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:22px 14px 14px}
 .brand{padding:0 8px 22px}
 .logo{display:block;height:30px;width:auto}
+.upd{position:fixed;top:12px;left:0;right:0;margin:0 auto;width:max-content;z-index:200;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 32px);padding:10px 12px 10px 16px;border-radius:var(--r-sm);background:var(--navy);color:#fff;font-size:13.5px;box-shadow:0 8px 24px rgba(42,39,33,.28)}
+.upd .btn{background:#fff;color:var(--navy);border:0;font-weight:600;white-space:nowrap}
 .brand b{display:block;font-family:var(--f-display);font-size:17px;font-weight:700;line-height:1.15;margin-top:14px}
 .brand span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted3);margin-top:4px}
 .nav{display:flex;flex-direction:column;gap:4px;flex:1}
@@ -262,7 +264,7 @@ textarea.big{min-height:120px}
 <div id="app"></div>
 
 <script>
-/* Sin datos: todo se lee desde SharePoint (ver conexion.js). */
+/* Sin datos: todo se lee desde Supabase (ver conexion.js). */
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="conexion.js"></script>
@@ -270,7 +272,7 @@ textarea.big{min-height:120px}
 (function(){
 'use strict';
 /* ---------- Logo IPPB (vector) ---------- */
-const LOGO=c=>`<svg class="${c}" viewBox="0 0 374 112" role="img" aria-label="IPPB"><path d="M14 2 24 12 14 22 4 12Z" fill="#1E6FE3"/><rect x="6" y="34" width="16" height="76" rx="2" fill="#2B3D5B"/><g fill="none" stroke-width="16" stroke-linejoin="round"><path d="M56 110V56M48 42H142V78H64" stroke="#1E6FE3"/><path d="M166 110V56M158 42H252V78H174" stroke="#2B3D5B"/><path d="M350 42H284V102H366V70H292" stroke="#2B3D5B"/></g></svg>`;
+const LOGO=c=>`<svg class="${c}" viewBox="128 734 1662 472" role="img" aria-label="IPPB"><path d="M171 743Q180 734 189 743L219 773Q228 782 219 791L189 821Q180 830 171 821L141 791Q132 782 141 773Z" fill="#0A72EA"/><g fill="#324661" fill-rule="evenodd"><path d="M142 875H218V1202H142Z"/><path d="M809 1202V775H1142C1217 775 1267 830 1267 927C1267 1025 1217 1080 1142 1080H886V1202ZM886 850V1003H1112C1167 1003 1189 975 1189 927C1189 880 1167 850 1112 850Z"/><path d="M1326 775H1401V897H1640C1730 897 1785 950 1785 1050C1785 1150 1730 1202 1640 1202H1326V1127H1640C1685 1127 1705 1100 1705 1050C1705 1000 1685 972 1640 972H1326Z"/></g><path d="M292 1202V775H625C700 775 750 830 750 927C750 1025 700 1080 625 1080H369V1202ZM369 850V1003H595C650 1003 672 975 672 927C672 880 650 850 595 850Z" fill="#0A72EA" fill-rule="evenodd"/></svg>`;
 
 /* ---------- Catálogos ---------- */
 const FASES=['AS IS','TO BE y BPMN','Documentación funcional','Validación y cierre'];
@@ -972,6 +974,8 @@ function errTxt(e){const s=e&&e.status;const m=String(e&&e.message||e);
   if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'No hay conexión con el servidor. Revisa tu internet; si sigue igual, el proyecto de Supabase puede estar en pausa (el administrador lo reactiva con «Restore project»).';
   if(/rate limit|too many/i.test(m))return 'Demasiados intentos seguidos. Espera unos minutos.';
   if(/Password should be/i.test(m))return 'La contraseña es muy corta o simple. Usa al menos 8 caracteres.';
+  if(s===401)return 'La sesión venció. Vuelve a entrar.';
+  if(window.OMEGA_SP&&OMEGA_SP.kind==='password')return 'Ocurrió un error al conectar con el servidor.';
   if(/AADSTS65001|consent/i.test(m))return 'Falta aprobar los permisos de la app. Si al entrar no te apareció la pantalla «Permisos solicitados», un administrador de Microsoft 365 debe pulsar «Grant admin consent» en el registro de la app.';
   if(/AADSTS50011|redirect/i.test(m))return 'La dirección de esta página no coincide con la «Redirect URI» del registro de la app. Deben ser idénticas, incluida la barra final.';
   if(/AADSTS700016|application.*not found/i.test(m))return 'El clientId o el tenantId de config.json no son correctos.';
@@ -991,8 +995,41 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
   <button class="btn pri" data-a="suRun" ${S.busy?'disabled':''} style="align-self:flex-start">${S.busy?'Configurando…':'Configurar'}</button>`))}
 
 /* ---------- Arranque ---------- */
+/* ---------- Aviso de nueva versión ----------
+   build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
+   (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
+const BUILD='2026-11-15 23:55:08';
+function watchVersion(){
+  if(BUILD.charAt(0)==='_')return; // demo: no aplica
+  let shown=false;
+  const check=async()=>{
+    if(shown||document.hidden)return;
+    try{
+      const t=await (await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'})).text();
+      const m=t.match(/const BUILD='([^']+)'/);
+      if(m&&m[1]!==BUILD){shown=true;showUpd()}
+    }catch(e){}
+  };
+  setInterval(check,3*60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+  setTimeout(check,20000);
+}
+function showUpd(){
+  const b=document.createElement('div');b.className='upd';b.setAttribute('role','status');
+  b.innerHTML='<span><b>Seguimiento OMEGA se actualizó.</b> Hay mejoras nuevas en la plataforma.</span><button type="button" class="btn sm">Actualizar ahora</button>';
+  const btn=b.querySelector('button');
+  btn.onclick=async()=>{
+    btn.disabled=true;btn.textContent='Actualizando…';
+    // espera a que termine de guardarse lo pendiente antes de recargar
+    await new Promise(r=>setTimeout(r,1000));
+    for(let i=0;i<20&&UI.sync&&UI.sync.k==='saving';i++)await new Promise(r=>setTimeout(r,500));
+    location.reload();
+  };
+  document.body.appendChild(b);
+}
 async function boot(){
   if(window.SEED_PROCESOS){startDemo();return}
+  watchVersion();
   scLoading('Cargando…');
   let c=null;try{c=await (await fetch('config.json',{cache:'no-store'})).json()}catch(e){}
   if(!window.OMEGA_SP){scError(new Error('No se cargó conexion.js. Revisa tu conexión a internet.'));return}
