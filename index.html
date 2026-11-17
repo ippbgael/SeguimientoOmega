@@ -360,7 +360,7 @@ function persist(){if(MODE==='sp'){if(window.OMEGA_SP)window.OMEGA_SP.schedule(D
 let D=null;
 let curSp=1;
 const UI={as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fdep:'all',teq:'all',tsp:'1',tini:'ini',meq:'all',msp:'all',
-  exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',rvT:{},
+  exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',rvD:{},rvT:{},
   inv:{nombre:'',id:'',rol:'Consultor',eq:'1'},ren:null,toast:'',confirmReset:false,anOpen:false,sync:{k:'ok',msg:''},fold:{},up:null};
 function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);render()}
 
@@ -579,8 +579,9 @@ function vRevision(){
   const rv=canReview();
   const card=o=>{const key=o.p.id+':'+o.t.k;
     return `<div class="card rvcard"><div class="hd"><div style="flex:1;min-width:200px"><span class="mono muted">${esc(o.p.codigo)} · F${o.t.f+1} ${FASES[o.t.f]}</span><h3 style="font-size:15px;margin-top:3px">${esc(o.t.l)}</h3><div class="muted" style="font-size:12.5px">${esc(o.p.nombre)} · Equipo ${o.p.equipo} · ${esc(teamName(o.p.equipo))}</div></div>${o.vrev?chip('Revisión vencida','st-l'):chipE(2)}</div>
-    <div class="muted" style="font-size:12.5px">Versión ${o.x.ver} · cargado por ${esc(uName(o.x.por))} el ${fmt(o.x.fc)}${o.tarde?' (fuera de plazo)':' (a tiempo)'} · revisar hasta <b style="color:${o.vrev?'var(--late)':'inherit'}">${fmt(o.prv)}</b>${o.x.link?` · <a href="${esc(o.x.link)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Abrir archivo ↗</a>`:''}</div>
+    <div class="muted" style="font-size:12.5px">Versión ${o.x.ver} · cargado por ${esc(uName(o.x.por))} el ${fmt(o.x.fc)}${o.tarde?' (fuera de plazo)':' (a tiempo)'} · revisar hasta <b style="color:${o.vrev?'var(--late)':'inherit'}">${fmt(o.prv)}</b>${lks(o.x).length?' · '+lkHTML(o.x):''}</div>
     ${rv?`<textarea class="inp fw big" id="rv-${o.p.id}-${o.t.k}" data-f="rv" data-key="${key}" placeholder="Observaciones para el consultor (obligatorio si lo observas). Puedes escribir todo lo que necesites.">${esc(UI.rvT[key]||'')}</textarea>
+    <input class="inp fw" type="url" id="rvd-${o.p.id}-${o.t.k}" data-f="rvd" data-key="${key}" aria-label="Enlace a un documento de revisión (opcional)" placeholder="Enlace a un documento de revisión (opcional) · p. ej. el informe generado con IA" value="${esc(UI.rvD[key]||'')}">
     <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">Ver proceso</button><button class="btn sm warn" data-a="rObs" data-key="${key}">Observar y devolver</button><button class="btn sm ok" data-a="rFin" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">Solo la Líder de Procesos cambia este estado.</p>`}</div>`};
   return `<div class="filters"><select class="sel" id="revEq" data-f="revEq" aria-label="Equipo"><option value="all">Todos los equipos</option>${[1,2,3].map(n=>`<option value="${n}" ${UI.revEq==n?'selected':''}>Equipo ${n} · ${esc(teamName(n))}</option>`).join('')}</select><span class="muted" style="font-size:12.5px">${pend.length} por revisar${nv?` · <b style="color:var(--late)">${nv} con la revisión vencida</b>`:''} · ${obs.length} observados con los consultores</span></div>
   <div class="pgrid">${pend.map(card).join('')||'<div class="card empty" style="grid-column:1/-1">No hay entregables esperando revisión. Cuando un consultor cargue un entregable, aparecerá aquí.</div>'}</div>
@@ -779,28 +780,31 @@ function vDrawer(){
     let h=`<div class="doc" id="e-${p.id}-${e.t.k}"><button data-a="edit" data-key="${key}" aria-expanded="${open}"><div class="dn">${esc(e.t.l)}<small>${sub} · <b>${esc(quienE(p,x))}</b></small></div>${e.venc?chip('Vencido','st-b'):''}${e.vrev?chip('Revisión vencida','st-l'):''}${chipE(x.e)}</button>`;
     if(open){
       const lg=D.log.filter(r=>r.pid==p.id&&r.k===e.t.k).slice().reverse();
-      h+=`<div class="ed">${x.link?`<a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;font-size:13px">Abrir archivo cargado (v${x.ver}) ↗</a>`:''}
-      ${x.e===3&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>Observación de ${esc(first(lider().id))}:</b> ${esc(x.obs)}</div>`:''}
+      const rdocA=x.rdoc?' '+lkA(x.rdoc,'Documento de la revisión'):'';
+      h+=`<div class="ed">${lks(x).length?`<div style="font-size:13px">${lks(x).length>1?`<span class="muted">Archivos cargados (v${x.ver}):</span> `+lkHTML(x):lkHTML(x,'Abrir archivo cargado (v'+x.ver+')')}</div>`:''}
+      ${x.e===3&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>Observación de ${esc(first(lider().id))}:</b> ${esc(x.obs)}${rdocA?'\n':''}${rdocA}</div>`:x.rdoc?`<div style="font-size:13px">${rdocA}</div>`:''}
       ${e.vrev?`<div class="note warn">Se cargó el ${fmt(x.fc)} y la revisión debía hacerse hasta el ${fmt(e.prv)}. Este atraso es de IPPB · revisión, no del equipo.</div>`:''}`;
-      if(isAdmin()&&x.ver&&!p.baja)h+=UI.fixL&&UI.fixL.key===key?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)"><label class="flbl" for="fx-l">Enlace correcto (v${x.ver}) · no cambia el estado ni la versión</label><input class="inp fw" id="fx-l" type="url" data-f="fixL" value="${esc(UI.fixL.link)}"><div class="row" style="justify-content:flex-end"><button class="btn sm ghost" data-a="fixLX">Cancelar</button><button class="btn sm pri" data-a="fixLY" data-key="${key}">Guardar enlace</button></div></div>`
-        :`<button class="btn sm ghost" data-a="fixL" data-key="${key}" style="align-self:flex-start">✎ Corregir enlace (administrador)</button>`;
+      if(isAdmin()&&x.ver&&!p.baja)h+=UI.fixL&&UI.fixL.key===key?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)"><span class="flbl" style="margin:0">Enlaces correctos (v${x.ver}) · no cambia el estado ni la versión</span>${UI.fixL.links.map((u,i)=>`<div class="row" style="gap:6px"><input class="inp" style="flex:1;min-width:0" id="fx-l${i}" type="url" aria-label="Enlace ${i+1}" data-f="fixL" data-i="${i}" value="${esc(u)}">${UI.fixL.links.length>1?`<button class="btn sm ghost" data-a="fixLDel" data-i="${i}" aria-label="Quitar enlace ${i+1}">✕</button>`:''}</div>`).join('')}<div class="row" style="justify-content:space-between;flex-wrap:wrap"><button class="btn sm ghost" data-a="fixLAdd">+ Otro archivo</button><span class="row" style="gap:6px"><button class="btn sm ghost" data-a="fixLX">Cancelar</button><button class="btn sm pri" data-a="fixLY" data-key="${key}">Guardar enlaces</button></span></div></div>`
+        :`<button class="btn sm ghost" data-a="fixL" data-key="${key}" style="align-self:flex-start">✎ Corregir enlaces (administrador)</button>`;
       if(w&&[0,1,3].includes(x.e)){
         h+=`${x.e===0?`<button class="btn sm" data-a="eElab" data-key="${key}" style="align-self:flex-start">Marcar «En elaboración»</button>`:''}
         ${hasFiles()?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)">${fileSugs(p,SUBS[e.t.f],'useFile',key,TOK[e.t.k])}
           <label class="btn sm" style="align-self:flex-start">${UI.up?'Subiendo '+esc(UI.up.name)+(UI.up.pct!=null?' · '+UI.up.pct+'%':'…'):'⤒ Subir archivo desde mi PC'}<input type="file" data-f="upE" data-key="${key}" hidden ${UI.up?'disabled':''}></label>
           <span class="muted" style="font-size:11.5px">Se guarda en «${esc(SUBS[e.t.f])}» como ${esc(p.codigo)}_${TOK[e.t.k]}_v${x.ver+1}.</span></div>`:''}
-        <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl"></div>
+        <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl">
+          ${(f.mas||[]).map((u,i)=>`<div class="row" style="gap:6px;margin-top:6px"><input class="inp" style="flex:1;min-width:0" type="url" id="flm${i}" aria-label="Archivo adicional ${i+1}" placeholder="Otro archivo · https://..." value="${esc(u)}" data-f="flm" data-i="${i}"><button class="btn sm ghost" data-a="flDel" data-i="${i}" aria-label="Quitar archivo adicional ${i+1}">✕</button></div>`).join('')}
+          <button class="btn sm ghost" data-a="flAdd" style="margin-top:6px">+ Agregar otro archivo${e.t.k==='bpmn'?' (p. ej. el HTML)':''}</button></div>
         <div><label for="ft">Comentario</label><textarea class="inp" id="ft" data-f="ft" placeholder="${x.e===3?'Qué corregiste':'Opcional'}">${esc(f.t)}</textarea></div>
         <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="cancel">Cancelar</button><button class="btn pri" data-a="eSend" data-key="${key}">Cargar y enviar a revisión</button></div>`;
       }else if(x.e===2){
-        h+=rv?`<div><label for="ft">Observaciones para el consultor</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si lo observas. Puedes escribir todo lo que necesites.">${esc(f.t)}</textarea></div><div class="row" style="justify-content:flex-end"><button class="btn warn" data-a="eObs" data-key="${key}">Observar y devolver al equipo</button><button class="btn ok" data-a="eFin" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión con ${esc(lider().nombre)}.</p>`;
+        h+=rv?`<div><label for="ft">Observaciones para el consultor</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si lo observas. Puedes escribir todo lo que necesites.">${esc(f.t)}</textarea></div><div><label for="frd">Documento de revisión (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="Enlace al informe de revisión, p. ej. el generado con IA" value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end"><button class="btn warn" data-a="eObs" data-key="${key}">Observar y devolver al equipo</button><button class="btn ok" data-a="eFin" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión con ${esc(lider().nombre)}.</p>`;
       }else if(x.e===4){
-        h+=`<p class="note" style="margin:0">Finalizado: el entregable ya está bien.</p>${rv?`<div><label for="ft">Motivo para reabrir</label><textarea class="inp" id="ft" data-f="ft">${esc(f.t)}</textarea></div><div class="row" style="justify-content:flex-end"><button class="btn sm warn" data-a="eObs" data-key="${key}">Reabrir como observado</button></div>`:''}`;
+        h+=`<p class="note" style="margin:0">Finalizado: el entregable ya está bien.</p>${rv?`<div><label for="ft">Motivo para reabrir</label><textarea class="inp" id="ft" data-f="ft">${esc(f.t)}</textarea></div><div><label for="frd">Documento de revisión (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="https://..." value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end"><button class="btn sm warn" data-a="eObs" data-key="${key}">Reabrir como observado</button></div>`:''}`;
       }else h+=`<p class="note" style="margin:0">${x.e===3?'Devuelto al equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') para corregir.':'Solo el equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') puede cargar este entregable.'}</p>`;
       const lr=isAdmin()&&lastRev(key);
       if(lr)h+=UI.cRev===key?`<div class="note warn" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:180px">¿Revertir «${esc(lr.t.split('\n')[0])}»? Vuelve a ${ST[lr.prev.e].l}${lr.prev.link!==x.link?(lr.prev.link?' con la versión anterior del archivo':' sin archivo cargado'):''}. Queda en el historial.</span><button class="btn sm warn" data-a="eRevY" data-key="${key}">Sí, revertir</button><button class="btn sm ghost" data-a="eRevN">No</button></div>`
         :`<button class="btn sm ghost" data-a="eRev" data-key="${key}" style="align-self:flex-start">↶ Revertir último cambio (administrador)</button>`;
-      h+=`<div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span> ${chipE(r.a)}${r.undone?' '+chip('Revertido','e0'):''}<p>${esc(r.t)}</p></div></div>`).join('')}</div></div>`;
+      h+=`<div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span> ${chipE(r.a)}${r.undone?' '+chip('Revertido','e0'):''}<p>${esc(r.t)}</p>${r.doc?`<p style="margin-top:2px">${lkA(r.doc,'Documento de revisión')}</p>`:''}</div></div>`).join('')}</div></div>`;
     }
     return h+'</div>'};
   const sesRow=({s,st})=>{const ed=UI.sesEd===s.id;
@@ -929,10 +933,10 @@ async function exportar(){
     xs.map(x=>[x.p.codigo,x.p.nombre,x.p.sprint,x.p.equipo,teamName(x.p.equipo),xDate(x.p.ini),xDate(x.p.fin),x.etapa,x.quien,pct(x.esp),pct(x.real),x.desv,x.crono.l,x.causa?CAUSAS[x.causa].l:'',x.motivo,relTxt(x.p.id,'ant'),relTxt(x.p.id,'suc')]),
     {wrap:[1,8,14],fmt:{5:'dd/mm/yyyy',6:'dd/mm/yyyy',9:'0%',10:'0%',11:'+0;-0;0'},color:{11:neg,12:v=>CRX[v]||null,13:v=>DEPX[v]||null},filter:true});
   /* --- Entregables --- */
-  const En=sheet('Entregables',[16,40,8,24,34,12,15,30,12,12,8,12,12,18,40,40],1);
-  table(En,1,1,['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿A tiempo?','Revisar hasta','Vencido','Observación','Enlace'],
-    xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,xDate(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),xDate(e.x.fc1),xDate(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',xDate(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link?{text:'Abrir archivo',hyperlink:e.x.link}:''])),
-    {wrap:[1,4,14],fmt:{5:'dd/mm/yyyy',8:'dd/mm/yyyy',9:'dd/mm/yyyy',12:'dd/mm/yyyy'},color:{6:v=>{const i=ST.findIndex(s=>s.l===v);return i>=0?STX[i]:null},11:v=>v==='No'?[XC.orangeBg,XC.orange]:null,13:v=>v?[XC.redBg,XC.red]:null},filter:true});
+  const En=sheet('Entregables',[16,40,8,24,34,12,15,30,12,12,8,12,12,18,40,18,40,20],1);
+  table(En,1,1,['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿A tiempo?','Revisar hasta','Vencido','Observación','Enlace','Otros archivos','Documento de revisión'],
+    xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,xDate(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),xDate(e.x.fc1),xDate(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',xDate(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link?{text:'Abrir archivo',hyperlink:e.x.link}:'',(e.x.mas||[]).join('\n'),e.x.rdoc?{text:'Abrir documento',hyperlink:e.x.rdoc}:''])),
+    {wrap:[1,4,14,16],fmt:{5:'dd/mm/yyyy',8:'dd/mm/yyyy',9:'dd/mm/yyyy',12:'dd/mm/yyyy'},color:{6:v=>{const i=ST.findIndex(s=>s.l===v);return i>=0?STX[i]:null},11:v=>v==='No'?[XC.orangeBg,XC.orange]:null,13:v=>v?[XC.redBg,XC.red]:null},filter:true});
   /* --- Actas --- */
   const Ac=sheet('Actas',[16,40,8,24,12,10,18,22,9,11,12,18,12,20],1);
   table(Ac,1,1,['Código N4','Proceso','Equipo','Sesión','Fecha','Hora fin','Plazo del acta','Estado','Correo','Acta interna','Acta PMO-100','Completada','Demora (h)','Acta'],
@@ -972,8 +976,8 @@ async function exportarSimple(){
   const relTxt=(pid,side)=>D.rel.filter(r=>side==='ant'?r.b===pid:r.a===pid).map(r=>proc(side==='ant'?r.a:r.b).codigo+(r.est==='Confirmado'?'':' (por confirmar)')).join(', ');
   const P=[['Código N4','Proceso','Sprint','Equipo','Consultores','Inicio plan','Fin plan','Etapa actual','Con quién','Programado %','Real %','Desvío (pts)','Estado cronograma','Entregables vencidos (equipo)','Revisiones vencidas (IPPB)','Depende de','Motivo','Detalle de la justificación','Antecesores','Sucesores']]
     .concat(xs.map(x=>[x.p.codigo,x.p.nombre,x.p.sprint,x.p.equipo,teamName(x.p.equipo),dmy(x.p.ini),dmy(x.p.fin),x.etapa,x.quien,x.esp,x.real,x.desv,x.crono.l,x.venc.map(e=>e.t.l).join(', '),x.vrev.map(e=>e.t.l).join(', '),x.causa?CAUSAS[x.causa].l:'',x.motivo,x.causa==='alicorp'||x.causa==='ippb_eq'?x.ult.det:'',relTxt(x.p.id,'ant'),relTxt(x.p.id,'suc')]));
-  const En=[['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿1.ª entrega a tiempo?','Revisar hasta','Vencido','Observación','Enlace']]
-    .concat(xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,dmy(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),dmy(e.x.fc1),dmy(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',dmy(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link])));
+  const En=[['Código N4','Proceso','Equipo','Fase','Entregable','Entrega plan','Estado','Con quién','1.ª carga','Última carga','Versión','¿1.ª entrega a tiempo?','Revisar hasta','Vencido','Observación','Enlace','Otros archivos','Documento de revisión']]
+    .concat(xs.flatMap(x=>x.es.map(e=>[x.p.codigo,x.p.nombre,x.p.equipo,'F'+(e.t.f+1)+' · '+FASES[e.t.f],e.t.l,dmy(e.f.fin),ST[e.x.e].l,quienE(x.p,e.x),dmy(e.x.fc1),dmy(e.x.fc),e.x.ver||'',e.x.fc1?(e.tarde?'No':'Sí'):'',dmy(e.prv),e.venc?'Sí · equipo':e.vrev?'Sí · revisión IPPB':'',e.x.obs,e.x.link,(e.x.mas||[]).join(' '),e.x.rdoc||''])));
   const Dv=[['Fecha','Código N4','Proceso','Equipo','Fase','Motivo','Depende de','Detalle','Registrado por']]
     .concat(D.desv.filter(d=>xs.some(x=>x.p.id===d.pid)).map(d=>{const p=proc(d.pid);return [dmy(d.fecha),p.codigo,p.nombre,p.equipo,'F'+(+d.fase+1)+' · '+FASES[d.fase],d.motivo,d.dep||MDEP[d.motivo]||'',d.det,uName(d.autor)]}));
   const Ac=[['Código N4','Proceso','Equipo','Sesión','Fecha','Hora fin','Plazo acta','Estado','Correo','Acta interna','Acta PMO-100','Completada','Demora (horas)','Enlace acta']]
@@ -1074,7 +1078,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-17 15:40:21';
+const BUILD='2026-11-17 18:32:20';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
@@ -1165,22 +1169,29 @@ async function uploadTo(p,sub,file,name){UI.up={name:file.name};render();
   try{const r=await OMEGA_SP.upload(p,sub,name,file,pct=>{UI.up={name:file.name,pct};render()});UI.up=null;loadFold(p.id);return r}catch(e){UI.up=null;toast('No se pudo subir: '+errTxt(e));return null}}
 
 /* ---------- Acciones ---------- */
-function startEdit(key){const x=D.E[key];UI.edit=key;UI.form={link:x.link||'',t:''}}
+// Un entregable puede tener varios archivos (p. ej. el .bpmn y su .html): el principal en «link» y los demás en «mas».
+const lks=x=>[x.link,...(x.mas||[])].filter(Boolean);
+function lkName(u,i){let s='';try{s=decodeURIComponent(new URL(u).pathname.split('/').pop())}catch(e){}const m=s.match(/\.([A-Za-z0-9]{2,5})$/);return m?m[1].toUpperCase():'Archivo '+(i+1)}
+const lkA=(u,txt)=>`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">${esc(txt)} ↗</a>`;
+function lkHTML(x,pre){const L=lks(x);if(!L.length)return '';return L.length===1?lkA(L[0],pre||'Abrir archivo'):L.map((u,i)=>lkA(u,lkName(u,i))).join(' · ')}
+const okUrl=u=>/^https?:\/\//i.test(u);
+function startEdit(key){const x=D.E[key];UI.edit=key;UI.form={link:x.link||'',mas:(x.mas||[]).slice(),t:'',rd:''}}
 function openP(pid,k){UI.drawer=+pid;UI.sesF=null;UI.sesEd=null;UI.relF=null;UI.bajaF=null;UI.fixL=null;if(UI.pEd&&!UI.pEd.nuevo)UI.pEd=null;const p=proc(pid);const I=pInfo(p);UI.dvF=I.sinJust&&canWork(p)?{motivo:MOTIVOS[0].m,dep:MOTIVOS[0].d,fase:String(I.venc[0].t.f),det:''}:null;
   if(k)startEdit(pid+':'+k);else{UI.edit=null;UI.form=null}render();
   const dsc=document.querySelector('.dbody');if(dsc&&!k)dsc.scrollTop=0;
   if(k){const el=document.getElementById('e-'+pid+'-'+k);if(el)el.scrollIntoView({block:'center'})}}
-const SNAP=['e','link','ver','fc','fc1','por','obs'];
-function setE(key,e,t,extra){const [pid,k]=key.split(':');const x=D.E[key];const de=x.e;const prev=Object.fromEntries(SNAP.map(f=>[f,x[f]]));Object.assign(x,extra||{});x.e=e;
-  D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de,a:e,t,prev});persist()}
+const SNAP=['e','link','mas','ver','fc','fc1','por','obs','rdoc'];
+function setE(key,e,t,extra,doc){const [pid,k]=key.split(':');const x=D.E[key];const de=x.e;const prev=Object.fromEntries(SNAP.map(f=>[f,x[f]===undefined?(f==='mas'?[]:''):x[f]]));Object.assign(x,extra||{});x.e=e;
+  const r={id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de,a:e,t,prev};if(doc)r.doc=doc;D.log.push(r);persist()}
 // Último cambio que se puede revertir (cada reversión deja rastro en el historial; no se borra nada).
 function lastRev(key){const [pid,k]=key.split(':');for(let i=D.log.length-1;i>=0;i--){const r=D.log[i];if(r.pid==pid&&r.k===k&&r.prev&&!r.undone)return r}return null}
-function revertE(key){const r=lastRev(key);if(!r)return;const [pid,k]=key.split(':');const x=D.E[key];Object.assign(x,r.prev);r.undone=true;
+function revertE(key){const r=lastRev(key);if(!r)return;const [pid,k]=key.split(':');const x=D.E[key];Object.assign(x,r.prev);if(!('mas' in r.prev))x.mas=[];if(!('rdoc' in r.prev))x.rdoc='';r.undone=true;
   D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de:r.a,a:x.e,t:'Revirtió «'+r.t.split('\n')[0]+'» ('+first(r.autor)+', '+fmtTs(r.ts)+'). Vuelve a '+ST[x.e].l+'.'});persist();toast(ENT[k].s+': cambio revertido, vuelve a '+ST[x.e].l)}
-function review(key,obs,t){
-  const x=D.E[key];const [pid,k]=key.split(':');const p=proc(pid);t=(t||'').trim();
+function review(key,obs,t,rd){
+  const x=D.E[key];const [pid,k]=key.split(':');const p=proc(pid);t=(t||'').trim();rd=(rd||'').trim();
   if(obs&&!t){toast('Escribe la observación para el consultor');return false}
-  if(obs)setE(key,3,'Observado y devuelto a Equipo '+p.equipo+' ('+teamName(p.equipo)+'):\n'+t,{obs:t});else setE(key,4,'Finalizado'+(t?': '+t:''),{obs:''});
+  if(rd&&!okUrl(rd)){toast('El enlace del documento de revisión debe empezar con https://');return false}
+  if(obs)setE(key,3,'Observado y devuelto a Equipo '+p.equipo+' ('+teamName(p.equipo)+'):\n'+t,{obs:t,rdoc:rd},rd);else setE(key,4,'Finalizado'+(t?': '+t:''),{obs:'',rdoc:rd},rd);
   toast(obs?ENT[k].s+' observado · ahora lo tienen '+teamName(p.equipo):ENT[k].s+' finalizado');return true}
 function findSes(sid){for(const pid in D.ses){const s=D.ses[pid].find(x=>x.id===sid);if(s)return {pid:+pid,s}}return null}
 document.addEventListener('click',e=>{
@@ -1193,14 +1204,17 @@ document.addEventListener('click',e=>{
     case 'edit':if(UI.edit===el.dataset.key){UI.edit=null;UI.form=null}else startEdit(el.dataset.key);render();break;
     case 'cancel':UI.edit=null;UI.form=null;render();break;
     case 'eElab':setE(el.dataset.key,1,'Empezó la elaboración');toast('En elaboración');break;
-    case 'eSend':{const key=el.dataset.key;const f=UI.form;const link=f.link.trim();
-      if(!/^https?:\/\//i.test(link)){toast('Pega el enlace del archivo en SharePoint/OneDrive');break}
-      const x=D.E[key];setE(key,2,(x.e===3?'Corrigió la observación y volvió a cargar':'Cargó el entregable')+(f.t.trim()?': '+f.t.trim():''),{link,ver:x.ver+1,fc:HOY,fc1:x.fc1||HOY,por:UI.as});
+    case 'eSend':{const key=el.dataset.key;const f=UI.form;const link=f.link.trim();const mas=(f.mas||[]).map(s=>s.trim()).filter(Boolean);
+      if(!okUrl(link)){toast('Pega el enlace del archivo en SharePoint/OneDrive');break}
+      if(mas.some(u=>!okUrl(u))){toast('Cada enlace adicional debe empezar con https://');break}
+      const x=D.E[key];const n=1+mas.length;setE(key,2,(x.e===3?'Corrigió la observación y volvió a cargar':'Cargó el entregable')+(n>1?' ('+n+' archivos)':'')+(f.t.trim()?': '+f.t.trim():''),{link,mas,ver:x.ver+1,fc:HOY,fc1:x.fc1||HOY,por:UI.as});
       UI.edit=null;UI.form=null;toast('Enviado a revisión con '+first(lider().id));break}
-    case 'eObs':if(review(el.dataset.key,true,UI.form&&UI.form.t)){UI.edit=null;UI.form=null;render()}break;
-    case 'eFin':if(review(el.dataset.key,false,UI.form&&UI.form.t)){UI.edit=null;UI.form=null;render()}break;
-    case 'rObs':if(review(el.dataset.key,true,UI.rvT[el.dataset.key])){delete UI.rvT[el.dataset.key];render()}break;
-    case 'rFin':if(review(el.dataset.key,false,UI.rvT[el.dataset.key])){delete UI.rvT[el.dataset.key];render()}break;
+    case 'flAdd':if(UI.form){(UI.form.mas=UI.form.mas||[]).push('');render();const ins=document.querySelectorAll('[data-f="flm"]');if(ins.length)ins[ins.length-1].focus()}break;
+    case 'flDel':if(UI.form){UI.form.mas.splice(+el.dataset.i,1);render()}break;
+    case 'eObs':if(review(el.dataset.key,true,UI.form&&UI.form.t,UI.form&&UI.form.rd)){UI.edit=null;UI.form=null;render()}break;
+    case 'eFin':if(review(el.dataset.key,false,UI.form&&UI.form.t,UI.form&&UI.form.rd)){UI.edit=null;UI.form=null;render()}break;
+    case 'rObs':if(review(el.dataset.key,true,UI.rvT[el.dataset.key],UI.rvD[el.dataset.key])){delete UI.rvT[el.dataset.key];delete UI.rvD[el.dataset.key];render()}break;
+    case 'rFin':if(review(el.dataset.key,false,UI.rvT[el.dataset.key],UI.rvD[el.dataset.key])){delete UI.rvT[el.dataset.key];delete UI.rvD[el.dataset.key];render()}break;
     case 'sesT':{const o=findSes(el.dataset.sid);if(!o)break;const s=o.s;const k=el.dataset.fl;s[k]=!s[k];
       const full=s.correo&&s.actaI&&s.actaP;if(full&&!s.done)s.done=Date.now();if(!full)s.done=0;
       const L={correo:'correo enviado',actaI:'acta interna',actaP:'acta PMO-100'};let t=SES[s.t]+' '+fmt(s.f)+': '+(s[k]?'':'quitó ')+L[k];
@@ -1231,13 +1245,15 @@ document.addEventListener('click',e=>{
     case 'bajaX':UI.bajaF=null;render();break;
     case 'pAlta':{const p=proc(el.dataset.pid);if(!p||!p.baja)break;const b=p.baja;delete p.baja;
       D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Reactivó el proceso (estaba dado de baja desde el '+fmt(b.fecha)+': '+b.motivo+')'});persist();toast('Proceso reactivado');break}
-    case 'fixL':{const x=D.E[el.dataset.key];UI.fixL={key:el.dataset.key,link:x.link};render();break}
+    case 'fixL':{const x=D.E[el.dataset.key];UI.fixL={key:el.dataset.key,links:lks(x).length?lks(x):['']};render();break}
     case 'fixLX':UI.fixL=null;render();break;
-    case 'fixLY':{const key=el.dataset.key;const x=D.E[key];const v=(UI.fixL.link||'').trim();
-      if(!/^https?:\/\//i.test(v)){toast('El enlace debe empezar con https://');break}
-      if(v===x.link){UI.fixL=null;render();break}
-      const [pid,k]=key.split(':');const old=x.link;x.link=v;UI.fixL=null;
-      D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,a:x.e,t:'Corrigió el enlace de la v'+x.ver+' (el estado no cambia). Antes: '+(old||'sin enlace')});persist();toast('Enlace corregido');break}
+    case 'fixLAdd':if(UI.fixL){UI.fixL.links.push('');render()}break;
+    case 'fixLDel':if(UI.fixL&&UI.fixL.links.length>1){UI.fixL.links.splice(+el.dataset.i,1);render()}break;
+    case 'fixLY':{const key=el.dataset.key;const x=D.E[key];const L=UI.fixL.links.map(s=>s.trim()).filter(Boolean);
+      if(!L.length||L.some(u=>!okUrl(u))){toast('Cada enlace debe empezar con https://');break}
+      const old=lks(x);if(L.join('\n')===old.join('\n')){UI.fixL=null;render();break}
+      const [pid,k]=key.split(':');x.link=L[0];x.mas=L.slice(1);UI.fixL=null;if(UI.edit===key)startEdit(key);
+      D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,a:x.e,t:'Corrigió los enlaces de la v'+x.ver+' (el estado no cambia). Ahora: '+L.join(' · ')+'. Antes: '+(old.join(' · ')||'sin enlace')});persist();toast('Enlaces corregidos');break}
     case 'exp':UI.exp[el.dataset.n]=!UI.exp[el.dataset.n];render();break;
     case 'misF':UI.misF=el.dataset.v;render();break;
     case 'tini':UI.tini=el.dataset.v;render();break;
@@ -1277,12 +1293,13 @@ document.addEventListener('input',e=>{
   if(f==='pwA'){UI.pw.a=el.value;return}if(f==='pwB'){UI.pw.b=el.value;return}
   if(f==='q'){UI.q=el.value;render()}
   else if(f==='fl')UI.form.link=el.value;else if(f==='ft')UI.form.t=el.value;
-  else if(f==='rv')UI.rvT[el.dataset.key]=el.value;
+  else if(f==='flm'&&UI.form)UI.form.mas[+el.dataset.i]=el.value;else if(f==='frd'&&UI.form)UI.form.rd=el.value;
+  else if(f==='rv')UI.rvT[el.dataset.key]=el.value;else if(f==='rvd')UI.rvD[el.dataset.key]=el.value;
   else if(f==='invNombre')UI.inv.nombre=el.value;else if(f==='invId')UI.inv.id=el.value;else if(f==='renN')UI.ren.nombre=el.value;
   else if(f==='dvDet')UI.dvF.det=el.value;else if(f==='sfF')UI.sesF.f=el.value;else if(f==='sfH')UI.sesF.h=el.value;
   else if(f==='relN')UI.relF.n=el.value;else if(f==='mrN')UI.mrel.nota=el.value;
   else if(f==='pe'&&UI.pEd)UI.pEd[el.dataset.k]=el.value;else if(f==='pef'&&UI.pEd)UI.pEd.fases[+el.dataset.i][el.dataset.k]=el.value;
-  else if(f==='bajaM'&&UI.bajaF)UI.bajaF.m=el.value;else if(f==='fixL'&&UI.fixL)UI.fixL.link=el.value;
+  else if(f==='bajaM'&&UI.bajaF)UI.bajaF.m=el.value;else if(f==='fixL'&&UI.fixL)UI.fixL.links[+el.dataset.i]=el.value;
 });
 document.addEventListener('change',e=>{
   const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
