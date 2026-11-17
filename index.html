@@ -349,7 +349,10 @@ function seed(){
     const {ses,...r}=p;return r});
   return {users:USERS0.map(u=>({...u})),P,SP:window.SEED_SPRINTS,E,ses:S,desv:[],rel:[],log:[],cfg:{...CFG0}};
 }
-function norm(s){s.cfg={...CFG0,...(s.cfg||{})};s.rel=s.rel||[];s.desv=s.desv||[];s.log=s.log||[];s.ses=s.ses||{};s.users.forEach(u=>{if(u.admin===undefined){const z=USERS0.find(y=>y.id===u.id);u.admin=!!(z&&z.admin)}});return s}
+const E0=()=>({e:0,link:'',ver:0,fc:'',fc1:'',por:'',obs:''});
+function norm(s){s.cfg={...CFG0,...(s.cfg||{})};s.rel=s.rel||[];s.desv=s.desv||[];s.log=s.log||[];s.ses=s.ses||{};s.E=s.E||{};
+  // Todo proceso (también los nuevos) tiene sus 4 fases y una ficha por entregable.
+  s.P.forEach(p=>{p.fases=p.fases||[];while(p.fases.length<FASES.length)p.fases.push({ini:'',fin:'',rev:''});ENTS.forEach(t=>{if(!s.E[p.id+':'+t.k])s.E[p.id+':'+t.k]=E0()})});s.users.forEach(u=>{if(u.admin===undefined){const z=USERS0.find(y=>y.id===u.id);u.admin=!!(z&&z.admin)}});return s}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.E&&s.P&&s.users)return norm(s)}catch(e){}return seed()}
 // MODE 'demo': datos en el navegador (localStorage). MODE 'sp': datos en SharePoint vía conexion.js.
 let MODE='demo';
@@ -374,8 +377,11 @@ function setAs(id){const u=user(id)||(MODE==='demo'&&(user('jenny.perez')||D.use
 function startDemo(){MODE='demo';let as=null;try{as=localStorage.getItem(KEY+'_as')}catch(e){}start(load(),as)}
 const meU=()=>user(UI.as)||{};
 const isLider=()=>UI.rol==='Líder de Procesos';
-const canWork=p=>isLider()||(UI.rol==='Consultor'&&meU().eq==p.equipo);
-const canReview=()=>isLider()||(UI.rol==='PM'&&D.cfg.pmRevisa);
+// El administrador puede trabajar y revisar en cualquier proceso (corrige lo que haga falta). Un proceso dado de baja no se edita.
+const canWork=p=>!p.baja&&(isAdmin()||(UI.rol==='Consultor'&&meU().eq==p.equipo));
+const canReview=()=>isAdmin()||(UI.rol==='PM'&&D.cfg.pmRevisa);
+// Procesos vigentes: los dados de baja (desestimados) no cuentan en avance, atrasos, revisión ni reportes.
+const PA=()=>D.P.filter(p=>!p.baja);
 const canRel=()=>isLider()||UI.rol==='Consultor';
 // Administrador (soporte de la plataforma): puede revertir cargas, relaciones, desvíos y sesiones. La Líder también.
 const isAdmin=()=>isLider()||!!meU().admin;
@@ -403,7 +409,7 @@ function sEst(s){const c=s.correo&&s.actaI&&s.actaP;const pl=sPlazo(s);const now
 function pInfo(p){
   const es=ENTS.map(t=>eInfo(p,t));
   const real=avg(es.map(e=>ST[e.x.e].p)),esp=avg(es.map(e=>e.exp));
-  const venc=es.filter(e=>e.venc),vrev=es.filter(e=>e.vrev);const fin=es.every(e=>e.x.e===4);
+  const venc=p.baja?[]:es.filter(e=>e.venc),vrev=p.baja?[]:es.filter(e=>e.vrev);const fin=es.every(e=>e.x.e===4);
   const cnt=ST.map((_,i)=>es.filter(e=>e.x.e===i).length);
   const fi=FASES.findIndex((_,i)=>es.some(e=>e.t.f===i&&e.x.e!==4));
   const etapa=fi<0?'Cerrado':'F'+(fi+1)+' · '+FASES[fi];
@@ -411,7 +417,7 @@ function pInfo(p){
   const atr=venc.length>0||vrev.length>0;
   const causa=!atr?null:venc.length?(ult?(ult.dep==='Alicorp'?'alicorp':'ippb_eq'):'sin'):'ippb_rev';
   const motivo=!atr?'':causa==='ippb_rev'?'Revisión pendiente':causa==='sin'?'Sin justificar':ult.motivo;
-  const crono=fin?{k:'fin',l:'Finalizado',c:'e4'}:atr?{k:'atr',l:'Atrasado',c:'st-b'}:HOY<p.ini?{k:'pi',l:'Por iniciar',c:'e0'}:{k:'plazo',l:'En plazo',c:'ok'};
+  const crono=p.baja?{k:'baja',l:'Dado de baja',c:'e0'}:fin?{k:'fin',l:'Finalizado',c:'e4'}:atr?{k:'atr',l:'Atrasado',c:'st-b'}:HOY<p.ini?{k:'pi',l:'Por iniciar',c:'e0'}:{k:'plazo',l:'En plazo',c:'ok'};
   const q=[];if(cnt[2])q.push(first(lider().id)+' · '+cnt[2]+' por revisar');if(cnt[3])q.push('Equipo '+p.equipo+' · '+cnt[3]+' por corregir');
   const quien=q.length?q.join(' / '):fin?'—':'Equipo '+p.equipo;
   const ses=(D.ses[p.id]||[]).map(s=>({s,st:sEst(s)}));
@@ -422,7 +428,7 @@ function navs(){
   const r=UI.rol;
   if(r==='Líder de Procesos')return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['revision','Revisión','✓'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄'],['equipo','Equipo','⚇']];
   if(r==='PM')return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['revision','Revisión','✓'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄']];
-  if(r==='Consultor')return [['mis','Mis procesos','☰'],['procesos','Procesos','▦'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄'],['tablero','Tablero','◫']].concat(meU().admin?[['equipo','Equipo','⚇']]:[]);
+  if(r==='Consultor')return [['mis','Mis procesos','☰'],['procesos','Procesos','▦'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄'],['tablero','Tablero','◫']].concat(meU().admin?[['revision','Revisión','✓'],['equipo','Equipo','⚇']]:[]);
   return [['tablero','Tablero','◫'],['procesos','Procesos','▦'],['cronograma','Cronograma','▤'],['mapa','Mapa','⇄']];
 }
 const TITLES={tablero:['Tablero general','Programado vs. real, atrasos y actas'],procesos:['Procesos','Etapa, entregables y avance programado vs. real'],revision:['Bandeja de revisión','Entregables cargados que esperan revisión'],cronograma:['Cronograma','Fases planificadas por proceso'],mapa:['Mapa de procesos','Qué proceso antecede o sucede a cuál'],mis:['Mis procesos','Los procesos de tu equipo'],equipo:['Equipo y accesos','Usuarios, roles, plazos y asignación de procesos']};
@@ -454,7 +460,7 @@ function motivoRows(atr){
 function actasOf(xs){return xs.flatMap(x=>x.ses.map(o=>({p:x.p,...o})))}
 
 /* ---------- Tablero ---------- */
-function tabData(){return D.P.filter(p=>(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).map(p=>({p,...pInfo(p)}))}
+function tabData(){return PA().filter(p=>(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).map(p=>({p,...pInfo(p)}))}
 function vTablero(){
   const allF=tabData();
   const base=UI.tini==='ini'?allF.filter(x=>x.p.ini<=HOY):allF;
@@ -478,7 +484,7 @@ function vTablero(){
   const eqs=[1,2,3].filter(n=>UI.teq==='all'||UI.teq==n);
   const gEq=eqs.map(n=>grp('Equipo '+n,teamName(n),base.filter(x=>x.p.equipo===n)));
   if(eqs.length>1)gEq.push(grp('Total',base.length+' procesos',base));
-  const bySp=D.P.filter(p=>UI.teq==='all'||p.equipo==UI.teq).map(p=>({p,...pInfo(p)}));
+  const bySp=PA().filter(p=>UI.teq==='all'||p.equipo==UI.teq).map(p=>({p,...pInfo(p)}));
   const gSp=D.SP.map(sp=>{const it=bySp.filter(x=>x.p.sprint===sp.n);return grp('Sprint '+sp.n,fmt(sp.ini)+' – '+fmt(sp.fin),it,UI.tsp!=='all'&&UI.tsp!=sp.n)});
   // De quién depende
   const dep=Object.entries(CAUSAS).map(([k,c])=>({l:c.l,sub:k==='alicorp'?'falta BAE, usuarios, accesos, reprogramación…':k==='ippb_eq'?'motivo atribuido al equipo':k==='ippb_rev'?'entregado, esperando revisión de '+first(lider().id):'atrasado sin motivo registrado',v:atr.filter(x=>x.causa===k).length,c:c.c,a:'goDep',d:k}));
@@ -491,7 +497,7 @@ function vTablero(){
   const actRows=Object.entries(SESK).map(([k,s])=>({l:s.l,v:ac(k),c:s.c}));
   const actList=act.filter(a=>a.st.k==='venc'||a.st.k==='pend').sort((a,b)=>a.st.pl-b.st.pl).slice(0,6).map(a=>`<button class="alert" data-a="open" data-pid="${a.p.id}">${chip(a.st.l,a.st.c)}<div style="min-width:0"><div class="t">${SES[a.s.t]||a.s.t} · ${esc(a.p.nombre)}</div><div class="m">${fmt(a.s.f)} · Equipo ${a.p.equipo} · ${a.st.k==='venc'?'vencida hace '+durTxt(a.st.dem):'quedan '+durTxt(a.st.rest)} · falta: ${[!a.s.correo&&'correo',!a.s.actaI&&'acta interna',!a.s.actaP&&'acta PMO-100'].filter(Boolean).join(', ')}</div></div></button>`).join('');
   const feed=D.log.filter(r=>{const p=proc(r.pid);return p&&(UI.teq==='all'||p.equipo==UI.teq)}).slice().sort((a,b)=>b.ts-a.ts).slice(0,7).map(r=>{const p=proc(r.pid);
-    return `<div class="it"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b style="font-size:13px">${esc(uName(r.autor))}</b> <span class="muted" style="font-size:12px">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span><p>${esc(r.k?ENT[r.k].s+' · ':'')}${esc(p?p.nombre:'')}: ${esc(r.t)}</p></div></div>`}).join('');
+    return `<div class="it"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b style="font-size:13px">${esc(uName(r.autor))}</b> <span class="muted" style="font-size:12px">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span><p>${esc(r.k?(ENT[r.k]?ENT[r.k].s:'Entregable retirado')+' · ':'')}${esc(p?p.nombre:'')}: ${esc(r.t)}</p></div></div>`}).join('');
   const o=(v,cur,l)=>`<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(l)}</option>`;
   return `
   <div class="filters">
@@ -501,6 +507,7 @@ function vTablero(){
     <span class="muted" style="font-size:12.5px">${allF.length} procesos en el filtro</span>
     <button class="btn pri" data-a="export" style="margin-left:auto">⤓ Exportar reporte (Excel)</button>
   </div>
+  ${ayudaAvance()}
   <div class="grid g6">${kpis.map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('')}</div>
   <div class="grid g2e">
     <div class="card"><h2>Programado vs. real por equipo <small>${UI.tini==='ini'?'procesos ya iniciados':'todos los procesos del filtro'}</small></h2>${gEq.length?vbars(gEq,SER):'<div class="empty">Sin procesos.</div>'}</div>
@@ -525,7 +532,7 @@ function vTablero(){
 /* ---------- Procesos ---------- */
 function filtrar(){
   const q=UI.q.trim().toLowerCase();
-  return D.P.slice().sort((a,b)=>a.ini.localeCompare(b.ini)||a.equipo-b.equipo).map(p=>({p,...pInfo(p)})).filter(x=>(UI.feq==='all'||x.p.equipo==UI.feq)&&(UI.fsp==='all'||x.p.sprint==UI.fsp)&&(UI.fst==='all'||x.cnt[+UI.fst]>0)&&(UI.fcr==='all'||x.crono.k===UI.fcr)
+  return D.P.filter(p=>UI.fcr==='baja'?!!p.baja:!p.baja).sort((a,b)=>(a.ini||'').localeCompare(b.ini||'')||a.equipo-b.equipo).map(p=>({p,...pInfo(p)})).filter(x=>(UI.feq==='all'||x.p.equipo==UI.feq)&&(UI.fsp==='all'||x.p.sprint==UI.fsp)&&(UI.fst==='all'||x.cnt[+UI.fst]>0)&&(UI.fcr==='all'||x.crono.k===UI.fcr)
     &&(UI.fmo==='all'||(UI.fmo==='sin'?x.causa==='sin':(x.causa==='alicorp'||x.causa==='ippb_eq')&&x.ult.motivo===UI.fmo))
     &&(UI.fdep==='all'||x.causa===UI.fdep)
     &&(!q||[x.p.nombre,x.p.codigo,x.p.macro,x.p.po,x.p.ku,x.p.n4,x.p.n3,x.p.area].join(' ').toLowerCase().includes(q)));
@@ -538,7 +545,7 @@ function filtrosHTML(){
     <select class="sel" id="feq" data-f="feq" aria-label="Equipo">${o('all',UI.feq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.feq,'Equipo '+n+' · '+teamName(n))).join('')}</select>
     <select class="sel" id="fsp" data-f="fsp" aria-label="Sprint">${o('all',UI.fsp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.fsp,'Sprint '+s.n)).join('')}</select>
     <select class="sel" id="fst" data-f="fst" aria-label="Estado de entregable">${o('all',UI.fst,'Cualquier estado')}${ST.map((s,i)=>o(i,UI.fst,'Con entregables '+s.l.toLowerCase())).join('')}</select>
-    <select class="sel" id="fcr" data-f="fcr" aria-label="Cronograma">${o('all',UI.fcr,'Todo el cronograma')}${o('atr',UI.fcr,'Atrasados')}${o('plazo',UI.fcr,'En plazo')}${o('pi',UI.fcr,'Por iniciar')}${o('fin',UI.fcr,'Finalizados')}</select>
+    <select class="sel" id="fcr" data-f="fcr" aria-label="Cronograma">${o('all',UI.fcr,'Todo el cronograma')}${o('atr',UI.fcr,'Atrasados')}${o('plazo',UI.fcr,'En plazo')}${o('pi',UI.fcr,'Por iniciar')}${o('fin',UI.fcr,'Finalizados')}${o('baja',UI.fcr,'Dados de baja')}</select>
     <select class="sel" id="fdep" data-f="fdep" aria-label="De quién depende">${o('all',UI.fdep,'Cualquier responsable')}${Object.entries(CAUSAS).map(([k,c])=>o(k,UI.fdep,'Depende de: '+c.l)).join('')}</select>
     <select class="sel" id="fmo" data-f="fmo" aria-label="Motivo de desvío">${o('all',UI.fmo,'Cualquier motivo')}${MOTIVOS.map(m=>o(m.m,UI.fmo,m.m)).join('')}${o('sin',UI.fmo,'Sin justificar')}</select>
     ${any?'<button class="btn sm ghost" data-a="clrF">Limpiar filtros</button>':''}
@@ -559,12 +566,13 @@ function vProcesos(){
     ${FCON.map(i=>`<td><div class="cells">${x.es.filter(e=>e.t.f===i).map(e=>cellE(p,e)).join('')}</div></td>`).join('')}
     <td class="num">${x.esp}%</td><td class="num"><b>${x.real}%</b></td><td class="num" style="white-space:nowrap">${dtxt(x.desv)}</td>
     <td>${chip(x.crono.l,x.crono.c)}${x.crono.k==='atr'?`<div style="font-size:11.5px;margin-top:4px;white-space:nowrap" class="${x.causa==='sin'?'neg':'muted'}">${esc(CAUSAS[x.causa].l)}${x.causa!=='sin'&&x.causa!=='ippb_rev'?' · '+esc(x.motivo):''}</div>`:''}</td></tr>`}).join('');
-  return filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCON.map(i=>`<th>F${i+1} ${FCORTA[i]}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="${9+FCON.length}" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
+  const nuevo=isAdmin()?(UI.pEd&&UI.pEd.nuevo?pEdForm():`<div class="row" style="justify-content:flex-end"><button class="btn sm" data-a="pNew">+ Nuevo proceso (administrador)</button></div>`):'';
+  return nuevo+filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCON.map(i=>`<th>F${i+1} ${FCORTA[i]}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="${9+FCON.length}" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
 }
 
 /* ---------- Bandeja de revisión ---------- */
 function vRevision(){
-  const all=D.P.flatMap(p=>ENTS.map(t=>({p,...eInfo(p,t)}))).filter(o=>UI.revEq==='all'||o.p.equipo==UI.revEq);
+  const all=PA().flatMap(p=>ENTS.map(t=>({p,...eInfo(p,t)}))).filter(o=>UI.revEq==='all'||o.p.equipo==UI.revEq);
   const pend=all.filter(o=>o.x.e===2).sort((a,b)=>a.prv.localeCompare(b.prv));
   const obs=all.filter(o=>o.x.e===3);
   const nv=pend.filter(o=>o.vrev).length;
@@ -581,14 +589,15 @@ function vRevision(){
 
 /* ---------- Cronograma ---------- */
 function vCronograma(){
-  const G0=D.P.reduce((m,p)=>p.ini<m?p.ini:m,'9999'),G1=addD(D.P.reduce((m,p)=>p.fin>m?p.fin:m,''),1);const tot=dias(G0,G1);
+  const PV=PA().filter(p=>p.ini&&p.fin);
+  const G0=PV.reduce((m,p)=>p.ini<m?p.ini:m,'9999'),G1=addD(PV.reduce((m,p)=>p.fin>m?p.fin:m,''),1);const tot=dias(G0,G1);
   const pos=s=>Math.max(0,Math.min(100,dias(G0,s)/tot*100));
   const sem=[];for(let d=G0;d<G1;d=addD(d,14))sem.push(d);
   const today=HOY>=G0&&HOY<=G1?`<div class="gtoday" style="left:${pos(HOY)}%" title="Hoy"></div>`:'';
-  const rows=D.SP.map(sp=>{const it=D.P.filter(p=>p.sprint===sp.n).sort((a,b)=>a.ini.localeCompare(b.ini));const inf=it.map(pInfo);const r=avg(inf.map(x=>x.real)),e=avg(inf.map(x=>x.esp));const L=pos(sp.ini),W=pos(addD(sp.fin,1))-L;const open=!!UI.exp[sp.n];
+  const rows=D.SP.map(sp=>{const it=PV.filter(p=>p.sprint===sp.n).sort((a,b)=>a.ini.localeCompare(b.ini));const inf=it.map(pInfo);const r=avg(inf.map(x=>x.real)),e=avg(inf.map(x=>x.esp));const L=pos(sp.ini),W=pos(addD(sp.fin,1))-L;const open=!!UI.exp[sp.n];
     let h=`<div class="grow"><div class="gl"><button class="caret" data-a="exp" data-n="${sp.n}" aria-expanded="${open}" aria-label="Mostrar procesos">${open?'▼':'▶'}</button><b style="display:inline">Sprint ${sp.n}</b><div class="muted" style="font-size:11.5px;padding-left:16px">${it.length} procesos · real ${r}% / programado ${e}%</div></div><div class="gtrack">${today}<div class="gbar" style="left:${L}%;width:${W}%"><i style="width:${r}%;background:var(--accent)"></i></div></div></div>`;
     if(open)h+=it.map((p,j)=>{const I=inf[j];
-      const segs=p.fases.map((f,i)=>{const es=I.es.filter(x=>x.t.f===i);const done=es.length?es.every(x=>x.x.e===4):I.fin;const v=es.some(x=>x.venc);const vr=es.some(x=>x.vrev);const col=done?'var(--e4-bar)':v?'var(--danger)':vr?'var(--late)':f.ini<=HOY?'var(--accent)':'var(--e0-bar)';const l=pos(f.ini),w=Math.max(.6,pos(addD(f.fin,1))-l);
+      const segs=p.fases.map((f,i)=>{if(!f.ini||!f.fin)return '';const es=I.es.filter(x=>x.t.f===i);const done=es.length?es.every(x=>x.x.e===4):I.fin;const v=es.some(x=>x.venc);const vr=es.some(x=>x.vrev);const col=done?'var(--e4-bar)':v?'var(--danger)':vr?'var(--late)':f.ini<=HOY?'var(--accent)':'var(--e0-bar)';const l=pos(f.ini),w=Math.max(.6,pos(addD(f.fin,1))-l);
         return `<div class="gseg" style="left:${l}%;width:${w}%;background:${col};opacity:${i%2?.8:1}" title="F${i+1} ${FASES[i]} · ${fmt(f.ini)} – ${fmt(f.fin)}"></div>`}).join('');
       return `<div class="grow gsub"><div class="gl"><button data-a="open" data-pid="${p.id}" style="border:0;background:transparent;padding:0;text-align:left;font-size:12.5px">${esc(p.nombre)}</button><div class="muted mono">Eq. ${p.equipo} · ${I.real}% / ${I.esp}%</div></div><div class="gtrack">${today}${segs}</div></div>`}).join('');
     return h}).join('');
@@ -599,7 +608,7 @@ function vCronograma(){
 
 /* ---------- Mapa de procesos ---------- */
 function procOpts(cur,excl){
-  return D.SP.map(sp=>`<optgroup label="Sprint ${sp.n}">${D.P.filter(p=>p.sprint===sp.n&&p.id!=excl).map(p=>`<option value="${p.id}" ${String(cur)===String(p.id)?'selected':''}>${esc(p.codigo+' · '+p.nombre)}</option>`).join('')}</optgroup>`).join('')}
+  return D.SP.map(sp=>`<optgroup label="Sprint ${sp.n}">${PA().filter(p=>p.sprint===sp.n&&p.id!=excl).map(p=>`<option value="${p.id}" ${String(cur)===String(p.id)?'selected':''}>${esc(p.codigo+' · '+p.nombre)}</option>`).join('')}</optgroup>`).join('')}
 function addRel(a,b,nota){a=+a;b=+b;
   if(!a||!b){toast('Elige los dos procesos');return false}
   if(a===b){toast('Un proceso no puede antecederse a sí mismo');return false}
@@ -642,7 +651,7 @@ function vMapa(){
 /* ---------- Mis procesos (consultor) ---------- */
 function vMis(){
   const eq=meU().eq;
-  const mis=D.P.filter(p=>p.equipo==eq).map(p=>({p,...pInfo(p)}));
+  const mis=PA().filter(p=>p.equipo==eq).map(p=>({p,...pInfo(p)}));
   const c=ST.map((_,i)=>mis.reduce((s,x)=>s+x.cnt[i],0));
   const act=mis.filter(x=>x.p.ini<=HOY&&!x.fin);
   const pen=mis.filter(x=>x.cnt[3]||x.sinJust||x.sesP.length||x.venc.length);
@@ -704,6 +713,63 @@ function vEquipo(){
     </div></div>`;
 }
 
+/* ---------- Cómo se calcula el avance ---------- */
+function ayudaAvance(){
+  const n=ENTS.length,peso=Math.round(1000/n)/10;
+  const ej=[4,4,2,1,0,0].slice(0,n);const ejR=avg(ej.map(e=>ST[e].p));
+  return `<details class="doc ayuda" style="padding:0 14px" ${UI.ayOpen?'open':''}><summary data-a="ayTog" style="cursor:pointer;padding:11px 0;font-size:13px;font-weight:600">¿Cómo se calcula el avance? (estados, puntos y ponderación)</summary>
+  <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:14px;font-size:13px">
+    <p style="margin:0"><b>1. Cada proceso tiene ${n} entregables y todos pesan lo mismo:</b> ${peso}% cada uno (${ENTS.map(t=>t.s).join(', ')}). La fase 4 (aprobación formal del PO) solo tiene fechas; no suma ni resta.</p>
+    <p style="margin:0"><b>2. Cada entregable da puntos según su estado:</b></p>
+    <div class="tblwrap"><table><thead><tr><th>Estado</th><th>Quién lo pone</th><th class="num">Puntos</th><th>Qué significa</th></tr></thead><tbody>
+      <tr><td>${chipE(0)}</td><td>—</td><td class="num">${ST[0].p}</td><td>Nadie empezó.</td></tr>
+      <tr><td>${chipE(1)}</td><td>Consultor</td><td class="num">${ST[1].p}</td><td>El equipo lo está trabajando.</td></tr>
+      <tr><td>${chipE(2)}</td><td>Consultor, al cargar el enlace</td><td class="num">${ST[2].p}</td><td>Entregado; lo tiene ${esc(first(lider().id))} para revisar.</td></tr>
+      <tr><td>${chipE(3)}</td><td>${esc(first(lider().id))} (o un administrador)</td><td class="num">${ST[3].p}</td><td>Revisado con observaciones; vuelve al equipo y baja de ${ST[2].p} a ${ST[3].p} hasta que lo corrijan y lo vuelvan a cargar.</td></tr>
+      <tr><td>${chipE(4)}</td><td>${esc(first(lider().id))} (o un administrador)</td><td class="num">${ST[4].p}</td><td>Aprobado. Es lo único que vale el 100%.</td></tr></tbody></table></div>
+    <p style="margin:0"><b>3. Avance real del proceso</b> = promedio de los puntos de sus ${n} entregables. Ejemplo: ${ej.map(e=>ST[e].l.toLowerCase()+' ('+ST[e].p+')').join(' + ')} = <b>${ejR}%</b>. Un proceso llega a <b>100%</b> solo cuando sus ${n} entregables están <b>Finalizados</b>.</p>
+    <p style="margin:0"><b>4. Avance programado</b> = lo que ya debería estar hecho hoy según el cronograma: dentro de cada fase avanza parejo día a día (a mitad de la fase, 50%; al pasar su fecha de fin, 100%), y se promedia igual que el real.</p>
+    <p style="margin:0"><b>5. Desvío</b> = real − programado, en puntos. Negativo = va atrasado. Equipo, sprint y total son el promedio de sus procesos (los dados de baja no cuentan).</p>
+  </div></details>`}
+
+/* ---------- Editar / crear proceso (administrador) ---------- */
+function pEdStart(p){
+  UI.pEd=p?{id:p.id,nuevo:false,codigo:p.codigo,nombre:p.nombre,sprint:String(p.sprint),equipo:String(p.equipo),po:p.po||'',ku:p.ku||'',fases:FASES.map((_,i)=>({...{ini:'',fin:'',rev:''},...(p.fases[i]||{})}))}
+    :{id:null,nuevo:true,codigo:'',nombre:'',sprint:String(curSp),equipo:'1',po:'',ku:'',fases:FASES.map(()=>({ini:'',fin:'',rev:''}))};
+}
+function pEdForm(){const F=UI.pEd;if(!F)return '';
+  const o=(v,cur,l)=>`<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(l)}</option>`;
+  const inp=(k,l,ph)=>`<div><label class="flbl" for="pe-${k}">${l}</label><input class="inp fw" id="pe-${k}" data-f="pe" data-k="${k}" value="${esc(F[k])}" placeholder="${ph||''}"></div>`;
+  return `<form data-form="pEd" class="doc" style="padding:14px;display:flex;flex-direction:column;gap:12px;border:1.5px solid var(--accent)">
+    <b style="font-size:14px">${F.nuevo?'Nuevo proceso':'Editar proceso y cronograma'} <span class="muted" style="font-weight:400;font-size:12px">· administrador</span></b>
+    <div class="two">${inp('codigo','Código N4','Ej. FTP.25.15.010')}${inp('nombre','Nombre del proceso')}</div>
+    <div class="two"><div><label class="flbl" for="pe-sprint">Sprint</label><select class="sel fw" id="pe-sprint" data-f="pe" data-k="sprint">${D.SP.map(s=>o(s.n,F.sprint,'Sprint '+s.n+' · '+fmt(s.ini)+' – '+fmt(s.fin))).join('')}</select></div>
+      <div><label class="flbl" for="pe-equipo">Equipo</label><select class="sel fw" id="pe-equipo" data-f="pe" data-k="equipo">${[1,2,3].map(n=>o(n,F.equipo,'Equipo '+n+' · '+teamName(n))).join('')}</select></div></div>
+    <div class="two">${inp('po','Process Owner (PO)')}${inp('ku','Key User (KU)')}</div>
+    <div class="tblwrap"><table><thead><tr><th>Fase</th><th>Inicio</th><th>Fin (entrega)</th><th>Revisión hasta</th></tr></thead><tbody>${FASES.map((fn,i)=>`<tr><td style="font-size:12.5px;white-space:nowrap">F${i+1} · ${fn}</td>${['ini','fin','rev'].map(k=>`<td><input class="inp" type="date" id="pf-${i}-${k}" data-f="pef" data-i="${i}" data-k="${k}" value="${esc(F.fases[i][k])}" aria-label="F${i+1} ${k}" style="min-width:130px"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="muted" style="margin:0;font-size:12px">«Revisión hasta» es opcional. Si cambias las fechas, el avance programado y los vencimientos se recalculan solos; lo que ya cargaron los consultores no se toca.</p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="pEdX">Cancelar</button><button class="btn pri" type="submit">${F.nuevo?'Crear proceso':'Guardar cambios'}</button></div></form>`}
+function pEdSave(){const F=UI.pEd;const codigo=F.codigo.trim(),nombre=F.nombre.trim();
+  if(!codigo||!nombre){toast('Escribe el código N4 y el nombre');return false}
+  if(D.P.some(p=>p.id!=F.id&&p.codigo.trim().toLowerCase()===codigo.toLowerCase())){toast('Ya existe un proceso con el código '+codigo);return false}
+  for(let i=0;i<FASES.length;i++){const f=F.fases[i];if(!f.ini||!f.fin){toast('Completa inicio y fin de la fase F'+(i+1));return false}if(f.fin<f.ini){toast('En F'+(i+1)+' el fin es antes del inicio');return false}if(f.rev&&f.rev<f.fin){toast('En F'+(i+1)+' la revisión es antes de la entrega');return false}}
+  const fases=F.fases.map(f=>({ini:f.ini,fin:f.fin,rev:f.rev||''}));
+  const ini=fases.reduce((m,f)=>f.ini<m?f.ini:m,'9999'),fin=fases.reduce((m,f)=>f.fin>m?f.fin:m,'');
+  const datos={codigo,nombre,sprint:+F.sprint,equipo:+F.equipo,po:F.po.trim(),ku:F.ku.trim(),fases,ini,fin};
+  if(F.nuevo){const id=D.P.reduce((m,p)=>Math.max(m,+p.id||0),0)+1;
+    const p={id,ciclo:'',n2:'',n3:'',n4:'',area:'',tipo:'',impacto:'',comentario:'',macro:'',cat:'',...datos,alta:{fecha:HOY,por:UI.as}};
+    D.P.push(p);ENTS.forEach(t=>D.E[id+':'+t.k]=E0());D.ses[id]=D.ses[id]||[];
+    D.log.push({id:uid(),pid:id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Creó el proceso '+codigo+' · '+nombre+' (Sprint '+datos.sprint+', Equipo '+datos.equipo+')'});
+    UI.pEd=null;persist();openP(id);toast('Proceso creado');return true}
+  const p=proc(F.id);const ch=[];
+  [['codigo','código'],['nombre','nombre'],['sprint','sprint'],['equipo','equipo'],['po','PO'],['ku','KU']].forEach(([k,l])=>{if(String(p[k]??'')!==String(datos[k]))ch.push(l+': '+(p[k]||'—')+' → '+(datos[k]||'—'))});
+  fases.forEach((f,i)=>{const a=p.fases[i]||{};if(a.ini!==f.ini||a.fin!==f.fin||(a.rev||'')!==f.rev)ch.push('F'+(i+1)+': '+fmt(a.ini)+'–'+fmt(a.fin)+' → '+fmt(f.ini)+'–'+fmt(f.fin)+(f.rev?' (rev. '+fmt(f.rev)+')':''))});
+  UI.pEd=null;
+  if(!ch.length){render();toast('No hubo cambios');return true}
+  Object.assign(p,datos);
+  D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Editó el proceso · '+ch.join(' · ')});
+  persist();toast('Proceso actualizado');return true}
+
 /* ---------- Ficha de proceso (panel lateral) ---------- */
 function vDrawer(){
   const p=proc(UI.drawer);if(!p)return '';
@@ -716,6 +782,8 @@ function vDrawer(){
       h+=`<div class="ed">${x.link?`<a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;font-size:13px">Abrir archivo cargado (v${x.ver}) ↗</a>`:''}
       ${x.e===3&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>Observación de ${esc(first(lider().id))}:</b> ${esc(x.obs)}</div>`:''}
       ${e.vrev?`<div class="note warn">Se cargó el ${fmt(x.fc)} y la revisión debía hacerse hasta el ${fmt(e.prv)}. Este atraso es de IPPB · revisión, no del equipo.</div>`:''}`;
+      if(isAdmin()&&x.ver&&!p.baja)h+=UI.fixL&&UI.fixL.key===key?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)"><label class="flbl" for="fx-l">Enlace correcto (v${x.ver}) · no cambia el estado ni la versión</label><input class="inp fw" id="fx-l" type="url" data-f="fixL" value="${esc(UI.fixL.link)}"><div class="row" style="justify-content:flex-end"><button class="btn sm ghost" data-a="fixLX">Cancelar</button><button class="btn sm pri" data-a="fixLY" data-key="${key}">Guardar enlace</button></div></div>`
+        :`<button class="btn sm ghost" data-a="fixL" data-key="${key}" style="align-self:flex-start">✎ Corregir enlace (administrador)</button>`;
       if(w&&[0,1,3].includes(x.e)){
         h+=`${x.e===0?`<button class="btn sm" data-a="eElab" data-key="${key}" style="align-self:flex-start">Marcar «En elaboración»</button>`:''}
         ${hasFiles()?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)">${fileSugs(p,SUBS[e.t.f],'useFile',key,TOK[e.t.k])}
@@ -747,8 +815,13 @@ function vDrawer(){
   <div class="dh"><div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="mono" style="background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:99px">${esc(p.codigo)}</span>${chip(I.crono.l,I.crono.c)}${causaChip(I)}</div><h2>${esc(p.nombre)}</h2></div><button class="btn sm" data-a="close" aria-label="Cerrar">✕</button></div>
   <div class="dbody">
     <div class="meta"><div><small>Sprint · plan</small><b>S${p.sprint} · ${fmt(p.ini)} – ${fmt(p.fin)}</b></div><div><small>Equipo</small><b>Equipo ${p.equipo} · ${esc(teamName(p.equipo))}</b></div><div><small>Process Owner</small><b>${esc(p.po)}</b></div><div><small>Key User</small><b>${esc(p.ku)}</b></div><div><small>Etapa actual</small><b>${esc(I.etapa)}</b></div><div><small>Con quién está</small><b>${esc(I.quien)}</b></div></div>
+    ${p.baja?`<div class="note bad"><b>Proceso dado de baja</b> el ${fmt(p.baja.fecha)} por ${esc(uName(p.baja.por))}. Motivo: ${esc(p.baja.motivo)}<br>No cuenta en el avance, los atrasos, la revisión ni el reporte.</div>`:''}
+    ${isAdmin()?(UI.pEd&&UI.pEd.id==p.id?pEdForm()
+      :UI.bajaF&&UI.bajaF.pid==p.id?`<form data-form="baja" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--danger)"><b style="font-size:14px">Dar de baja este proceso</b><p class="muted" style="margin:0;font-size:12.5px">Deja de contar en el avance, los atrasos y el reporte. No se borra nada: se puede reactivar después.</p><div><label class="flbl" for="bj-m">¿Por qué se desestima? (obligatorio)</label><textarea class="inp fw" id="bj-m" data-f="bajaM" placeholder="Ej. Alicorp confirmó que el proceso se absorbe en FTP.25.15.005; acordado en la sesión del 17 nov">${esc(UI.bajaF.m)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="bajaX">Cancelar</button><button class="btn warn" type="submit">Dar de baja</button></div></form>`
+      :`<div class="row" style="gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:12px">Administrador:</span>${p.baja?`<button class="btn sm" data-a="pAlta" data-pid="${p.id}">↺ Reactivar proceso</button>`:`<button class="btn sm" data-a="pEdit" data-pid="${p.id}">✎ Editar proceso y fechas</button><button class="btn sm ghost" data-a="pBaja" data-pid="${p.id}" style="color:var(--danger)">Dar de baja…</button>`}</div>`):''}
     <div class="doc" style="padding:12px 14px"><div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:8px"><b>Avance real ${I.real}% · programado hoy ${I.esp}%</b>${dtxt(I.desv)}</div>${dual(I.real,I.esp)}</div>
-    ${!w?`<p class="note" style="margin:0">${UI.rol==='Consultor'?'Este proceso es del equipo '+p.equipo+'. Puedes verlo, pero no editarlo.':UI.rol==='Solo lectura'||UI.rol==='PM'?'Vista de consulta.':''}</p>`:''}
+    ${ayudaAvance()}
+    ${!w&&!p.baja?`<p class="note" style="margin:0">${UI.rol==='Consultor'?'Este proceso es del equipo '+p.equipo+'. Puedes verlo, pero no editarlo.':UI.rol==='Solo lectura'||UI.rol==='PM'?'Vista de consulta.':''}</p>`:''}
     <div class="sect">Justificación del desvío ${I.dv.length?`<span>${plural(I.dv.length,'registro')}</span>`:''}${w&&!V?'<button class="btn sm" data-a="dvAdd">+ Registrar motivo</button>':''}</div>
     ${I.sinJust&&!V?`<div class="note bad">El proceso está atrasado (${I.venc.map(e=>e.t.s).join(', ')} vencido${I.venc.length>1?'s':''}) y no tiene un motivo registrado.</div>`:''}
     ${I.causa==='ippb_rev'?`<div class="note info">El equipo entregó y el atraso está en la revisión (${I.vrev.map(e=>e.t.s).join(', ')}). No hace falta que el consultor lo justifique.</div>`:''}
@@ -771,7 +844,7 @@ function vDrawer(){
       ${[['Comentario',p.comentario],['Comentarios Bolivia',p.comentarioBol],['Comentario revisión 2.0',p.comentarioRev],['Acción pendiente',p.accion]].filter(x=>x[1]).map(([l,v])=>`<div style="padding-bottom:12px"><div class="sect" style="margin-bottom:4px">${l}</div><div style="font-size:13px;white-space:pre-line">${esc(v)}</div></div>`).join('')}
     </details>
     <div class="sect">Historial</div>
-    <div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)} · ${esc(r.k?ENT[r.k].s:'Proceso')}</span><p>${esc(r.t)}</p></div></div>`).join('')||'<div class="note">Todavía no hay movimientos.</div>'}</div>
+    <div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)} · ${esc(r.k?(ENT[r.k]?ENT[r.k].s:'Entregable retirado'):'Proceso')}</span><p>${esc(r.t)}</p></div></div>`).join('')||'<div class="note">Todavía no hay movimientos.</div>'}</div>
   </div></aside>`;
 }
 
@@ -921,8 +994,8 @@ function render(){
   const a=document.activeElement;const fid=a&&a.id;const sel=a&&typeof a.selectionStart==='number'?[a.selectionStart,a.selectionEnd]:null;
   const dsc=document.querySelector('.dbody');const dTop=dsc?dsc.scrollTop:0;
   const v=curView();const nav=navs();const u=meU();
-  const nRev=Object.values(D.E).filter(x=>x.e===2).length;
-  const misP=UI.rol==='Consultor'?D.P.filter(p=>p.equipo==u.eq).map(pInfo).filter(x=>x.cnt[3]||x.sinJust||x.sesP.some(o=>o.st.k==='venc')).length:0;
+  const nRev=PA().reduce((n,p)=>n+ENTS.filter(t=>E(p.id,t.k).e===2).length,0);
+  const misP=UI.rol==='Consultor'?PA().filter(p=>p.equipo==u.eq).map(pInfo).filter(x=>x.cnt[3]||x.sinJust||x.sesP.some(o=>o.st.k==='venc')).length:0;
   const badge=id=>id==='revision'&&nRev?`<span class="badge">${nRev}</span>`:id==='mis'&&misP?`<span class="badge">${misP}</span>`:'';
   const body={tablero:vTablero,procesos:vProcesos,revision:vRevision,cronograma:vCronograma,mapa:vMapa,mis:vMis,equipo:vEquipo}[v]();
   const d=dt(HOY);const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -1001,7 +1074,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-17 10:57:24';
+const BUILD='2026-11-17 15:40:21';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
@@ -1093,7 +1166,7 @@ async function uploadTo(p,sub,file,name){UI.up={name:file.name};render();
 
 /* ---------- Acciones ---------- */
 function startEdit(key){const x=D.E[key];UI.edit=key;UI.form={link:x.link||'',t:''}}
-function openP(pid,k){UI.drawer=+pid;UI.sesF=null;UI.sesEd=null;UI.relF=null;const p=proc(pid);const I=pInfo(p);UI.dvF=I.sinJust&&canWork(p)?{motivo:MOTIVOS[0].m,dep:MOTIVOS[0].d,fase:String(I.venc[0].t.f),det:''}:null;
+function openP(pid,k){UI.drawer=+pid;UI.sesF=null;UI.sesEd=null;UI.relF=null;UI.bajaF=null;UI.fixL=null;if(UI.pEd&&!UI.pEd.nuevo)UI.pEd=null;const p=proc(pid);const I=pInfo(p);UI.dvF=I.sinJust&&canWork(p)?{motivo:MOTIVOS[0].m,dep:MOTIVOS[0].d,fase:String(I.venc[0].t.f),det:''}:null;
   if(k)startEdit(pid+':'+k);else{UI.edit=null;UI.form=null}render();
   const dsc=document.querySelector('.dbody');if(dsc&&!k)dsc.scrollTop=0;
   if(k){const el=document.getElementById('e-'+pid+'-'+k);if(el)el.scrollIntoView({block:'center'})}}
@@ -1116,7 +1189,7 @@ document.addEventListener('click',e=>{
   switch(a){
     case 'go':if(location.hash.slice(1)!==el.dataset.v)location.hash=el.dataset.v;else render();window.scrollTo(0,0);break;
     case 'open':openP(el.dataset.pid,el.dataset.k);break;
-    case 'close':UI.drawer=null;UI.edit=null;UI.sesF=null;UI.dvF=null;UI.relF=null;render();break;
+    case 'close':UI.drawer=null;UI.edit=null;UI.sesF=null;UI.dvF=null;UI.relF=null;UI.bajaF=null;UI.fixL=null;if(UI.pEd&&!UI.pEd.nuevo)UI.pEd=null;render();break;
     case 'edit':if(UI.edit===el.dataset.key){UI.edit=null;UI.form=null}else startEdit(el.dataset.key);render();break;
     case 'cancel':UI.edit=null;UI.form=null;render();break;
     case 'eElab':setE(el.dataset.key,1,'Empezó la elaboración');toast('En elaboración');break;
@@ -1150,6 +1223,21 @@ document.addEventListener('click',e=>{
     case 'sesDel':{const o=findSes(el.dataset.sid);if(o){D.ses[o.pid]=D.ses[o.pid].filter(x=>x!==o.s);D.log.push({id:uid(),pid:o.pid,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Eliminó la sesión '+(SES[o.s.t]||o.s.t)+' del '+fmt(o.s.f)});UI.sesEd=null;persist();toast('Sesión eliminada')}break}
     case 'uAdm':{const u=user(el.dataset.id);u.admin=!u.admin;persist();toast(u.nombre+(u.admin?' ahora es administrador':' ya no es administrador'));break}
     case 'anTog':e.preventDefault();UI.anOpen=!UI.anOpen;render();break;
+    case 'ayTog':e.preventDefault();UI.ayOpen=!UI.ayOpen;render();break;
+    case 'pNew':UI.bajaF=null;pEdStart(null);render();break;
+    case 'pEdit':UI.bajaF=null;pEdStart(proc(el.dataset.pid));render();break;
+    case 'pEdX':UI.pEd=null;render();break;
+    case 'pBaja':UI.pEd=null;UI.bajaF={pid:+el.dataset.pid,m:''};render();break;
+    case 'bajaX':UI.bajaF=null;render();break;
+    case 'pAlta':{const p=proc(el.dataset.pid);if(!p||!p.baja)break;const b=p.baja;delete p.baja;
+      D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Reactivó el proceso (estaba dado de baja desde el '+fmt(b.fecha)+': '+b.motivo+')'});persist();toast('Proceso reactivado');break}
+    case 'fixL':{const x=D.E[el.dataset.key];UI.fixL={key:el.dataset.key,link:x.link};render();break}
+    case 'fixLX':UI.fixL=null;render();break;
+    case 'fixLY':{const key=el.dataset.key;const x=D.E[key];const v=(UI.fixL.link||'').trim();
+      if(!/^https?:\/\//i.test(v)){toast('El enlace debe empezar con https://');break}
+      if(v===x.link){UI.fixL=null;render();break}
+      const [pid,k]=key.split(':');const old=x.link;x.link=v;UI.fixL=null;
+      D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,a:x.e,t:'Corrigió el enlace de la v'+x.ver+' (el estado no cambia). Antes: '+(old||'sin enlace')});persist();toast('Enlace corregido');break}
     case 'exp':UI.exp[el.dataset.n]=!UI.exp[el.dataset.n];render();break;
     case 'misF':UI.misF=el.dataset.v;render();break;
     case 'tini':UI.tini=el.dataset.v;render();break;
@@ -1193,6 +1281,8 @@ document.addEventListener('input',e=>{
   else if(f==='invNombre')UI.inv.nombre=el.value;else if(f==='invId')UI.inv.id=el.value;else if(f==='renN')UI.ren.nombre=el.value;
   else if(f==='dvDet')UI.dvF.det=el.value;else if(f==='sfF')UI.sesF.f=el.value;else if(f==='sfH')UI.sesF.h=el.value;
   else if(f==='relN')UI.relF.n=el.value;else if(f==='mrN')UI.mrel.nota=el.value;
+  else if(f==='pe'&&UI.pEd)UI.pEd[el.dataset.k]=el.value;else if(f==='pef'&&UI.pEd)UI.pEd.fases[+el.dataset.i][el.dataset.k]=el.value;
+  else if(f==='bajaM'&&UI.bajaF)UI.bajaF.m=el.value;else if(f==='fixL'&&UI.fixL)UI.fixL.link=el.value;
 });
 document.addEventListener('change',e=>{
   const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
@@ -1241,6 +1331,10 @@ document.addEventListener('submit',e=>{
     D.desv.push({id:uid(),pid:p.id,motivo:V.motivo,dep:V.dep,fase:V.fase,det:V.det.trim(),autor:UI.as,fecha:HOY});
     D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Desvío: '+V.motivo+' (depende de '+V.dep+') · '+V.det.trim()});UI.dvF=null;persist();toast('Motivo registrado')}
   if(k==='rel'){const R=UI.relF;const p=proc(UI.drawer);const ok=R.t==='ant'?addRel(R.o,p.id,R.n):addRel(p.id,R.o,R.n);if(ok){UI.relF=null;render()}}
+  if(k==='pEd'){pEdSave();return}
+  if(k==='baja'){const B=UI.bajaF;const m=(B.m||'').trim();if(!m){toast('Escribe por qué se da de baja');return}const p=proc(B.pid);
+    p.baja={motivo:m,fecha:HOY,por:UI.as};UI.bajaF=null;
+    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Dio de baja el proceso: '+m});persist();toast('Proceso dado de baja');return}
   if(k==='mrel'){const M=UI.mrel;if(addRel(M.a,M.b,M.nota)){UI.mrel={a:'',b:'',nota:''};render()}}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.drawer!=null){UI.drawer=null;UI.edit=null;render()}});
