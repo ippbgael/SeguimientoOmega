@@ -285,9 +285,10 @@ const ENTS=[
   {k:'bpmn',f:1,l:'Diagrama BPMN (Signavio .bpmn + HTML)',s:'BPMN'},
   {k:'desc',f:1,l:'Documento de procedimientos TO BE',s:'Proced.'},
   {k:'mcon',f:2,l:'Matriz de consideraciones',s:'Consid.'},
-  {k:'mreq',f:2,l:'Matriz de requerimientos',s:'Requer.'},
-  {k:'aval',f:3,l:'Acta de validación funcional',s:'Acta VF'}];
+  {k:'mreq',f:2,l:'Matriz de requerimientos',s:'Requer.'}];
+// La fase 4 (cierre y aprobación formal del PO) sigue en el cronograma, pero no pide entregable en la plataforma.
 const ENT=Object.fromEntries(ENTS.map(t=>[t.k,t]));
+const FCON=FASES.map((_,i)=>i).filter(i=>ENTS.some(t=>t.f===i)); // fases con entregables
 // Estados del entregable (RF-02). El % por estado es una regla propuesta, por confirmar con Jenny.
 const ST=[{l:'Sin iniciar',c:'e0',p:0},{l:'En elaboración',c:'e1',p:40},{l:'En revisión',c:'e2',p:85},{l:'Observado',c:'e3',p:70},{l:'Finalizado',c:'e4',p:100}];
 // Motivos de desvío y de quién depende cada uno por defecto (se puede cambiar al registrarlo).
@@ -555,10 +556,10 @@ function vProcesos(){
     return `<tr class="clk"><td><button data-a="open" data-pid="${p.id}" class="pname">${esc(p.nombre)}<span class="mono">${esc(p.codigo)}</span></button></td>
     <td class="num">S${p.sprint}</td><td style="white-space:nowrap">Eq. ${p.equipo}<div class="muted" style="font-size:11.5px">${esc(teamName(p.equipo))}</div></td>
     <td style="white-space:nowrap;font-size:12.5px">${esc(x.etapa)}</td><td style="font-size:12.5px;min-width:130px">${esc(x.quien)}</td>
-    ${FASES.map((_,i)=>`<td><div class="cells">${x.es.filter(e=>e.t.f===i).map(e=>cellE(p,e)).join('')}</div></td>`).join('')}
+    ${FCON.map(i=>`<td><div class="cells">${x.es.filter(e=>e.t.f===i).map(e=>cellE(p,e)).join('')}</div></td>`).join('')}
     <td class="num">${x.esp}%</td><td class="num"><b>${x.real}%</b></td><td class="num" style="white-space:nowrap">${dtxt(x.desv)}</td>
     <td>${chip(x.crono.l,x.crono.c)}${x.crono.k==='atr'?`<div style="font-size:11.5px;margin-top:4px;white-space:nowrap" class="${x.causa==='sin'?'neg':'muted'}">${esc(CAUSAS[x.causa].l)}${x.causa!=='sin'&&x.causa!=='ippb_rev'?' · '+esc(x.motivo):''}</div>`:''}</td></tr>`}).join('');
-  return filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCORTA.map((f,i)=>`<th>F${i+1} ${f}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="13" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
+  return filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCON.map(i=>`<th>F${i+1} ${FCORTA[i]}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="${9+FCON.length}" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
 }
 
 /* ---------- Bandeja de revisión ---------- */
@@ -587,7 +588,7 @@ function vCronograma(){
   const rows=D.SP.map(sp=>{const it=D.P.filter(p=>p.sprint===sp.n).sort((a,b)=>a.ini.localeCompare(b.ini));const inf=it.map(pInfo);const r=avg(inf.map(x=>x.real)),e=avg(inf.map(x=>x.esp));const L=pos(sp.ini),W=pos(addD(sp.fin,1))-L;const open=!!UI.exp[sp.n];
     let h=`<div class="grow"><div class="gl"><button class="caret" data-a="exp" data-n="${sp.n}" aria-expanded="${open}" aria-label="Mostrar procesos">${open?'▼':'▶'}</button><b style="display:inline">Sprint ${sp.n}</b><div class="muted" style="font-size:11.5px;padding-left:16px">${it.length} procesos · real ${r}% / programado ${e}%</div></div><div class="gtrack">${today}<div class="gbar" style="left:${L}%;width:${W}%"><i style="width:${r}%;background:var(--accent)"></i></div></div></div>`;
     if(open)h+=it.map((p,j)=>{const I=inf[j];
-      const segs=p.fases.map((f,i)=>{const es=I.es.filter(x=>x.t.f===i);const done=es.every(x=>x.x.e===4);const v=es.some(x=>x.venc);const vr=es.some(x=>x.vrev);const col=done?'var(--e4-bar)':v?'var(--danger)':vr?'var(--late)':f.ini<=HOY?'var(--accent)':'var(--e0-bar)';const l=pos(f.ini),w=Math.max(.6,pos(addD(f.fin,1))-l);
+      const segs=p.fases.map((f,i)=>{const es=I.es.filter(x=>x.t.f===i);const done=es.length?es.every(x=>x.x.e===4):I.fin;const v=es.some(x=>x.venc);const vr=es.some(x=>x.vrev);const col=done?'var(--e4-bar)':v?'var(--danger)':vr?'var(--late)':f.ini<=HOY?'var(--accent)':'var(--e0-bar)';const l=pos(f.ini),w=Math.max(.6,pos(addD(f.fin,1))-l);
         return `<div class="gseg" style="left:${l}%;width:${w}%;background:${col};opacity:${i%2?.8:1}" title="F${i+1} ${FASES[i]} · ${fmt(f.ini)} – ${fmt(f.fin)}"></div>`}).join('');
       return `<div class="grow gsub"><div class="gl"><button data-a="open" data-pid="${p.id}" style="border:0;background:transparent;padding:0;text-align:left;font-size:12.5px">${esc(p.nombre)}</button><div class="muted mono">Eq. ${p.equipo} · ${I.real}% / ${I.esp}%</div></div><div class="gtrack">${today}${segs}</div></div>`}).join('');
     return h}).join('');
@@ -753,7 +754,7 @@ function vDrawer(){
     ${I.causa==='ippb_rev'?`<div class="note info">El equipo entregó y el atraso está en la revisión (${I.vrev.map(e=>e.t.s).join(', ')}). No hace falta que el consultor lo justifique.</div>`:''}
     ${V?`<form data-form="desv" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="dvm">Motivo</label><select class="sel fw" id="dvm" data-f="dvMot">${MOTIVOS.map(m=>`<option ${V.motivo===m.m?'selected':''}>${m.m}</option>`).join('')}</select></div><div><label class="flbl" for="dvdp">Depende de</label><select class="sel fw" id="dvdp" data-f="dvDep">${DEPS.map(d=>`<option ${V.dep===d?'selected':''}>${d}</option>`).join('')}</select></div><div><label class="flbl" for="dvf">Fase</label><select class="sel fw" id="dvf" data-f="dvFase">${FASES.map((f,i)=>`<option value="${i}" ${V.fase==i?'selected':''}>F${i+1} · ${f}</option>`).join('')}</select></div></div><div><label class="flbl" for="dvd">Detalle</label><textarea class="inp fw" id="dvd" data-f="dvDet" placeholder="Ej. la sesión se movió del miércoles al jueves; no llegó el BAE del área comercial">${esc(V.det)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="dvX">Cancelar</button><button class="btn pri" type="submit">Guardar motivo</button></div></form>`:''}
     ${I.dv.slice().reverse().map(d=>`<div class="hist"><div class="h"><span class="av sm">${ini(uName(d.autor))}</span><div style="min-width:0">${chip(d.motivo,'e3')} ${chip('Depende de '+(d.dep||MDEP[d.motivo]||'IPPB'),'e0')} <span class="muted">· F${+d.fase+1} · ${esc(first(d.autor))} · ${fmt(d.fecha)}</span><p>${esc(d.det)}</p>${isAdmin()?`<button class="btn sm ghost" data-a="dvDel" data-id="${d.id}" style="color:var(--danger);padding-left:0">Anular este motivo</button>`:''}</div></div></div>`).join('')}
-    ${FASES.map((fn,i)=>{const f=p.fases[i]||{};return `<div class="sect">F${i+1} · ${fn} <span>plan ${fmt(f.ini)} – ${fmt(f.fin)}${f.rev?' · revisión hasta '+fmt(f.rev):''}</span></div><div style="display:flex;flex-direction:column;gap:8px">${I.es.filter(e=>e.t.f===i).map(entRow).join('')}</div>`}).join('')}
+    ${FASES.map((fn,i)=>{const f=p.fases[i]||{};return `<div class="sect">F${i+1} · ${fn} <span>plan ${fmt(f.ini)} – ${fmt(f.fin)}${f.rev?' · revisión hasta '+fmt(f.rev):''}</span></div><div style="display:flex;flex-direction:column;gap:8px">${FCON.includes(i)?I.es.filter(e=>e.t.f===i).map(entRow).join(''):'<p class="muted" style="margin:0;font-size:12.5px">Aprobación formal del PO según cronograma. No requiere cargar entregable en la plataforma.</p>'}</div>`}).join('')}
     ${foldPanel(p,w)}
     <div class="sect">Sesiones y actas <span>${I.ses.length} registradas · ${I.sesP.length} pendientes o vencidas</span>${w&&!S?'<button class="btn sm" data-a="sesAdd">+ Agregar sesión</button>':''}</div>
     ${S?`<form data-form="ses" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="sft">Tipo</label><select class="sel fw" id="sft" data-f="sfT">${Object.entries(SES).map(([k,l])=>`<option value="${k}" ${S.t===k?'selected':''}>${l}</option>`).join('')}</select></div><div><label class="flbl" for="sff">Fecha</label><input class="inp fw" id="sff" type="date" data-f="sfF" value="${esc(S.f)}"></div><div><label class="flbl" for="sfh">Hora de fin</label><input class="inp fw" id="sfh" type="time" data-f="sfH" value="${esc(S.h)}"></div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sesX">Cancelar</button><button class="btn pri" type="submit">Agregar</button></div></form>`:''}
@@ -1000,7 +1001,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-16 00:34:11';
+const BUILD='2026-11-17 10:57:24';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
