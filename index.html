@@ -283,11 +283,11 @@ const LOGO=c=>`<svg class="${c}" viewBox="128 734 1662 472" role="img" aria-labe
 const FASES=['AS IS','TO BE y BPMN','Documentación funcional','Validación y cierre'];
 const FCORTA=['AS IS','TO BE','Funcional','Validación'];
 // d = qué es cada entregable (se muestra con el botón «?»).
-// El «Diagrama BPMN» (bpmn) se retiró: el .bpmn y el HTML se adjuntan dentro del Manual SAP Signavio. Sus cargas viejas siguen a la vista en la ficha.
 const ENTS=[
   {k:'ficha',f:0,l:'Ficha AS IS',s:'Ficha',d:'Describe cómo funciona hoy el proceso: objetivo, alcance, actores, entradas y salidas, sistemas y pasos actuales. Se arma con lo levantado en las sesiones con el PO y el KU.'},
   {k:'mhal',f:0,l:'Matriz de hallazgos',s:'Hallaz.',d:'Lista los problemas, riesgos y oportunidades de mejora encontrados en el AS IS, con su causa, su impacto y la propuesta de mejora para el TO BE.'},
-  {k:'desc',f:1,l:'Manual de procedimientos SAP Signavio',s:'Manual',d:'El manual de procedimientos del proceso TO BE que genera SAP Signavio a partir del modelo. Si además tienes el .bpmn o el HTML exportados de Signavio, adjúntalos aquí mismo con «+ Agregar otro archivo»; no son un entregable aparte.'},
+  {k:'bpmn',f:1,l:'Diagrama BPMN (Signavio .bpmn + HTML)',s:'BPMN',d:'El flujo TO BE modelado en Signavio. Se cargan dos archivos: el .bpmn exportado de Signavio y el HTML para verlo en el navegador (usa «+ Agregar otro archivo»).'},
+  {k:'desc',f:1,l:'Documento de procedimientos TO BE',s:'Proced.',d:'Describe paso a paso el proceso futuro: actividades, responsables, reglas de negocio y sistemas que intervienen. Debe coincidir con el BPMN.'},
   {k:'mcon',f:2,l:'Matriz de consideraciones',s:'Consid.',d:'Reglas, supuestos, excepciones y puntos a tomar en cuenta para el diseño funcional del proceso TO BE.'},
   {k:'mreq',f:2,l:'Matriz de requerimientos',s:'Requer.',d:'Requerimientos funcionales y no funcionales que salen del TO BE, priorizados y vinculados a las actividades del proceso.'}];
 // La fase 4 (cierre y aprobación formal del PO) sigue en el cronograma, pero no pide entregable en la plataforma.
@@ -369,22 +369,21 @@ const UI={as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fd
   exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',hlp:{},rvD:{},rvT:{},
   inv:{nombre:'',id:'',rol:'Consultor',eq:'1'},ren:null,toast:'',confirmReset:false,anOpen:false,sync:{k:'ok',msg:''},fold:{},up:null};
 function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);
-  const n=unirBPMN();render();if(n){persist();toast(plural(n,'proceso')+': lo cargado como BPMN pasó al Manual SAP Signavio')}}
-// Une lo cargado en el antiguo «Diagrama BPMN» al «Manual de procedimientos SAP Signavio». Lo hace una sola vez el primer
-// administrador que abre la plataforma (los consultores no pueden escribir en procesos de otros equipos).
-//  · Si el manual no tenía archivo: toma los enlaces y el estado del BPMN (muchos cargaron ahí el manual por confusión).
-//  · Si el manual ya tenía archivo: los enlaces del BPMN se agregan como archivos adicionales y el estado no cambia.
-// Queda en el historial del manual y se puede revertir con «Revertir último cambio».
-function unirBPMN(){if(!isAdmin())return 0;let n=0;
-  D.P.forEach(p=>{const b=D.E[p.id+':bpmn'];if(!b||b.unido||!lks(b).length)return;
-    const m=D.E[p.id+':desc']||(D.E[p.id+':desc']=E0());
-    const prev=Object.fromEntries(SNAP.map(f=>[f,m[f]===undefined?(f==='mas'?[]:''):m[f]]));
-    const L=lks(b),vacio=!lks(m).length;
-    if(vacio)Object.assign(m,{e:b.e,link:L[0],mas:L.slice(1),ver:b.ver||1,fc:b.fc||HOY,fc1:b.fc1||b.fc||HOY,por:b.por||UI.as,obs:b.obs||'',rdoc:b.rdoc||''});
-    else{const cur=lks(m);m.mas=(m.mas||[]).concat(L.filter(u=>!cur.includes(u)))}
-    b.unido=HOY;n++;
-    D.log.push({id:uid(),pid:p.id,k:'desc',fecha:HOY,ts:Date.now(),autor:UI.as,de:prev.e,a:m.e,prev,
-      t:(vacio?'Se pasó a este manual lo cargado como «Diagrama BPMN» (ese entregable ya no se pide). Toma su estado: '+ST[m.e].l+'.':'Se adjuntaron a este manual los archivos cargados como «Diagrama BPMN» (ese entregable ya no se pide). El estado del manual no cambia.')+'\nArchivos: '+L.join(' · ')})});
+  const n=separarBPMN();render();if(n){persist();toast(plural(n,'proceso')+': el BPMN vuelve a ser un entregable aparte')}}
+// Deshace la unión «Diagrama BPMN → Manual» que hizo una versión anterior (23 nov). Corre una sola vez, con un administrador.
+// El registro del BPMN nunca se tocó (solo tenía la marca «unido»), así que recupera sus enlaces y su estado tal cual.
+//  · Si el documento de procedimientos no cambió desde la unión: vuelve exactamente a como estaba antes.
+//  · Si cambió después: se le quitan los archivos que vinieron del BPMN y se avisa en el historial para revisarlo.
+function separarBPMN(){if(!isAdmin())return 0;let n=0;
+  D.P.forEach(p=>{const b=D.E[p.id+':bpmn'];if(!b||!b.unido)return;const key=p.id+':desc';const m=D.E[key];
+    const r=D.log.slice().reverse().find(l=>l.pid==p.id&&l.k==='desc'&&l.prev&&!l.undone&&/«Diagrama BPMN»/.test(l.t));
+    const L=lks(b);let t;
+    if(m&&r&&r===lastRev(key)){Object.assign(m,r.prev);if(!('mas' in r.prev))m.mas=[];if(!('rdoc' in r.prev))m.rdoc='';r.undone=true;
+      t='Se deshizo la unión con el «Diagrama BPMN»: vuelven a ser dos entregables y este documento queda como estaba antes ('+ST[m.e].l+').'}
+    else if(m&&m.link&&L.includes(m.link))t='El «Diagrama BPMN» vuelve a ser un entregable aparte. Este documento tuvo cambios después de la unión y su enlace principal vino del BPMN; revísalo.';
+    else{if(m)m.mas=(m.mas||[]).filter(u=>!L.includes(u));t='El «Diagrama BPMN» vuelve a ser un entregable aparte; se quitaron de aquí sus archivos.'}
+    delete b.unido;n++;
+    D.log.push({id:uid(),pid:p.id,k:'desc',fecha:HOY,ts:Date.now(),autor:UI.as,de:m?m.e:0,a:m?m.e:0,t})});
   return n}
 
 /* ---------- Derivados ---------- */
@@ -801,7 +800,7 @@ function pEdSave(){const F=UI.pEd;const codigo=F.codigo.trim(),nombre=F.nombre.t
   persist();toast('Proceso actualizado');return true}
 
 /* ---------- Entregables retirados: lo que ya se cargó sigue a la vista (no suma al avance) ---------- */
-const RETIRADOS=[{k:'bpmn',f:1,l:'Diagrama BPMN',dest:'Manual de procedimientos SAP Signavio'}];
+const RETIRADOS=[]; // p. ej. {k,f,l,dest} si algún día se retira un entregable que ya tiene cargas
 function retHTML(p,i){return RETIRADOS.filter(r=>r.f===i).map(r=>{const x=D.E[p.id+':'+r.k];if(!x||x.unido||!lks(x).length)return '';
   return `<div class="note" style="margin:0;font-size:12.5px">Antes se cargó aquí un «${esc(r.l)}» (v${x.ver||1}, ${fmt(x.fc)}): ${lkHTML(x)}. Ese entregable ya no se pide y no cuenta en el avance; si corresponde, agrega estos archivos al «${esc(r.dest)}» con «+ Agregar otro archivo» o «✎ Corregir o cambiar enlaces».</div>`}).join('')}
 
@@ -828,7 +827,7 @@ function vDrawer(){
           <span class="muted" style="font-size:11.5px">Se guarda en «${esc(SUBS[e.t.f])}» como ${esc(p.codigo)}_${TOK[e.t.k]}_v${x.ver+1}.</span></div>`:''}
         <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl">
           ${(f.mas||[]).map((u,i)=>`<div class="row" style="gap:6px;margin-top:6px"><input class="inp" style="flex:1;min-width:0" type="url" id="flm${i}" aria-label="Archivo adicional ${i+1}" placeholder="Otro archivo · https://..." value="${esc(u)}" data-f="flm" data-i="${i}"><button class="btn sm ghost" data-a="flDel" data-i="${i}" aria-label="Quitar archivo adicional ${i+1}">✕</button></div>`).join('')}
-          <button class="btn sm ghost" data-a="flAdd" style="margin-top:6px">+ Agregar otro archivo${e.t.k==='desc'?' (p. ej. el .bpmn o el HTML)':''}</button></div>
+          <button class="btn sm ghost" data-a="flAdd" style="margin-top:6px">+ Agregar otro archivo${e.t.k==='bpmn'?' (p. ej. el HTML)':''}</button></div>
         <div><label for="ft">Comentario</label><textarea class="inp" id="ft" data-f="ft" placeholder="${OBS.includes(x.e)?'Qué corregiste':'Opcional'}">${esc(f.t)}</textarea></div>
         <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="cancel">Cancelar</button><button class="btn pri" data-a="eSend" data-key="${key}">Cargar y enviar a revisión</button></div>`;
       }else if(x.e===2){
@@ -1115,7 +1114,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-23 16:03:31';
+const BUILD='2026-11-23 16:09:10';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
@@ -1187,7 +1186,7 @@ async function runSetup(){const S=UI.setup;
 
 /* ---------- Carpeta del proceso en SharePoint ---------- */
 const SUBS=['01 AS IS','02 TO BE','03 Funcional','04 Validación','Actas'];
-const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'MANUAL-SIGNAVIO',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
+const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'PROCEDIMIENTOS',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
 async function loadFold(pid){UI.fold[pid]={k:'loading'};render();
   try{UI.fold[pid]=await OMEGA_SP.folderInfo(proc(pid),SUBS)}catch(e){UI.fold[pid]={k:'error',msg:errTxt(e)}}render()}
 function foldPanel(p,w){if(!hasFiles())return '';const F=UI.fold[p.id];
