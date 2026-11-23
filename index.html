@@ -283,19 +283,19 @@ const LOGO=c=>`<svg class="${c}" viewBox="128 734 1662 472" role="img" aria-labe
 const FASES=['AS IS','TO BE y BPMN','Documentación funcional','Validación y cierre'];
 const FCORTA=['AS IS','TO BE','Funcional','Validación'];
 // d = qué es cada entregable (se muestra con el botón «?»).
+// El «Diagrama BPMN» (bpmn) se retiró: el .bpmn y el HTML se adjuntan dentro del Manual SAP Signavio. Sus cargas viejas siguen a la vista en la ficha.
 const ENTS=[
   {k:'ficha',f:0,l:'Ficha AS IS',s:'Ficha',d:'Describe cómo funciona hoy el proceso: objetivo, alcance, actores, entradas y salidas, sistemas y pasos actuales. Se arma con lo levantado en las sesiones con el PO y el KU.'},
   {k:'mhal',f:0,l:'Matriz de hallazgos',s:'Hallaz.',d:'Lista los problemas, riesgos y oportunidades de mejora encontrados en el AS IS, con su causa, su impacto y la propuesta de mejora para el TO BE.'},
-  {k:'bpmn',f:1,l:'Diagrama BPMN (Signavio .bpmn + HTML)',s:'BPMN',d:'El flujo TO BE modelado en Signavio. Se cargan dos archivos: el .bpmn exportado de Signavio y el HTML para verlo en el navegador (usa «+ Agregar otro archivo»).'},
-  {k:'desc',f:1,l:'Documento de procedimientos TO BE',s:'Proced.',d:'Describe paso a paso el proceso futuro: actividades, responsables, reglas de negocio y sistemas que intervienen. Debe coincidir con el BPMN.'},
+  {k:'desc',f:1,l:'Manual de procedimientos SAP Signavio',s:'Manual',d:'El manual de procedimientos del proceso TO BE que genera SAP Signavio a partir del modelo. Si además tienes el .bpmn o el HTML exportados de Signavio, adjúntalos aquí mismo con «+ Agregar otro archivo»; no son un entregable aparte.'},
   {k:'mcon',f:2,l:'Matriz de consideraciones',s:'Consid.',d:'Reglas, supuestos, excepciones y puntos a tomar en cuenta para el diseño funcional del proceso TO BE.'},
   {k:'mreq',f:2,l:'Matriz de requerimientos',s:'Requer.',d:'Requerimientos funcionales y no funcionales que salen del TO BE, priorizados y vinculados a las actividades del proceso.'}];
 // La fase 4 (cierre y aprobación formal del PO) sigue en el cronograma, pero no pide entregable en la plataforma.
 const ENT=Object.fromEntries(ENTS.map(t=>[t.k,t]));
 const FCON=FASES.map((_,i)=>i).filter(i=>ENTS.some(t=>t.f===i)); // fases con entregables
 // Estados del entregable (RF-02). El % por estado es una regla propuesta, por confirmar con Jenny.
-// 5 y 6: revisión del Core. «En revisión del Core» sigue en manos de la Líder de Procesos; «Observado por el Core» vuelve al equipo.
-const ST=[{l:'Sin iniciar',c:'e0',p:0},{l:'En elaboración',c:'e1',p:40},{l:'En revisión',c:'e2',p:85},{l:'Observado',c:'e3',p:70},{l:'Finalizado',c:'e4',p:100},{l:'En revisión del Core',c:'e5',p:90},{l:'Observado por el Core',c:'e6',p:70}];
+// 5 y 6: revisión por Alicorp. «En revisión por Alicorp» sigue en manos de la Líder de Procesos; «Observado por Alicorp» vuelve al equipo.
+const ST=[{l:'Sin iniciar',c:'e0',p:0},{l:'En elaboración',c:'e1',p:40},{l:'En revisión',c:'e2',p:85},{l:'Observado',c:'e3',p:70},{l:'Finalizado',c:'e4',p:100},{l:'En revisión por Alicorp',c:'e5',p:90},{l:'Observado por Alicorp',c:'e6',p:70}];
 const OBS=[3,6],TEAM=[0,1,3,6]; // observados · estados en manos del equipo
 // Motivos de desvío y de quién depende cada uno por defecto (se puede cambiar al registrarlo).
 const MOTIVOS=[
@@ -368,7 +368,24 @@ let curSp=1;
 const UI={as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fdep:'all',teq:'all',tsp:'1',tini:'ini',meq:'all',msp:'all',
   exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',hlp:{},rvD:{},rvT:{},
   inv:{nombre:'',id:'',rol:'Consultor',eq:'1'},ren:null,toast:'',confirmReset:false,anOpen:false,sync:{k:'ok',msg:''},fold:{},up:null};
-function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);render()}
+function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);
+  const n=unirBPMN();render();if(n){persist();toast(plural(n,'proceso')+': lo cargado como BPMN pasó al Manual SAP Signavio')}}
+// Une lo cargado en el antiguo «Diagrama BPMN» al «Manual de procedimientos SAP Signavio». Lo hace una sola vez el primer
+// administrador que abre la plataforma (los consultores no pueden escribir en procesos de otros equipos).
+//  · Si el manual no tenía archivo: toma los enlaces y el estado del BPMN (muchos cargaron ahí el manual por confusión).
+//  · Si el manual ya tenía archivo: los enlaces del BPMN se agregan como archivos adicionales y el estado no cambia.
+// Queda en el historial del manual y se puede revertir con «Revertir último cambio».
+function unirBPMN(){if(!isAdmin())return 0;let n=0;
+  D.P.forEach(p=>{const b=D.E[p.id+':bpmn'];if(!b||b.unido||!lks(b).length)return;
+    const m=D.E[p.id+':desc']||(D.E[p.id+':desc']=E0());
+    const prev=Object.fromEntries(SNAP.map(f=>[f,m[f]===undefined?(f==='mas'?[]:''):m[f]]));
+    const L=lks(b),vacio=!lks(m).length;
+    if(vacio)Object.assign(m,{e:b.e,link:L[0],mas:L.slice(1),ver:b.ver||1,fc:b.fc||HOY,fc1:b.fc1||b.fc||HOY,por:b.por||UI.as,obs:b.obs||'',rdoc:b.rdoc||''});
+    else{const cur=lks(m);m.mas=(m.mas||[]).concat(L.filter(u=>!cur.includes(u)))}
+    b.unido=HOY;n++;
+    D.log.push({id:uid(),pid:p.id,k:'desc',fecha:HOY,ts:Date.now(),autor:UI.as,de:prev.e,a:m.e,prev,
+      t:(vacio?'Se pasó a este manual lo cargado como «Diagrama BPMN» (ese entregable ya no se pide). Toma su estado: '+ST[m.e].l+'.':'Se adjuntaron a este manual los archivos cargados como «Diagrama BPMN» (ese entregable ya no se pide). El estado del manual no cambia.')+'\nArchivos: '+L.join(' · ')})});
+  return n}
 
 /* ---------- Derivados ---------- */
 const user=id=>D.users.find(u=>u.id===id);
@@ -402,7 +419,7 @@ function eInfo(p,t){const x=E(p.id,t.k);const f=p.fases[t.f]||{};
     venc:!!f.fin&&f.fin<HOY&&TEAM.includes(x.e),
     vrev:!!prv&&prv<HOY,
     tarde:!!(x.fc1&&f.fin&&x.fc1>f.fin)}}
-function quienE(p,x){return x.e===2?first(lider().id)+' · revisando':x.e===5?first(lider().id)+' · en revisión del Core':x.e===4?'—':x.e===3?'Devuelto a Equipo '+p.equipo+' · '+teamName(p.equipo):x.e===6?'Devuelto a Equipo '+p.equipo+' · observado por el Core':'Equipo '+p.equipo+' · '+teamName(p.equipo)}
+function quienE(p,x){return x.e===2?first(lider().id)+' · revisando':x.e===5?first(lider().id)+' · en revisión por Alicorp':x.e===4?'—':x.e===3?'Devuelto a Equipo '+p.equipo+' · '+teamName(p.equipo):x.e===6?'Devuelto a Equipo '+p.equipo+' · observado por Alicorp':'Equipo '+p.equipo+' · '+teamName(p.equipo)}
 // Actas: pendiente → vencida al pasar el plazo; al completarse queda "a tiempo" o "fuera de plazo" con su demora.
 function sPlazo(s){return new Date(s.f+'T'+(s.h||D.cfg.horaDef)+':00').getTime()+(+D.cfg.actaMin||0)*60000}
 function sEst(s){const c=s.correo&&s.actaI&&s.actaP;const pl=sPlazo(s);const now=Date.now();
@@ -481,7 +498,7 @@ function vTablero(){
     ['Avance real / programado',`${real}%<small> / ${esp}%</small>`,dtxt(real-esp)+' frente al cronograma'],
     ['Procesos atrasados',atr.length,`de ${allF.filter(x=>x.p.ini<=HOY).length} iniciados · ${atr.filter(x=>x.sinJust).length} sin justificar`],
     ['Atraso por Alicorp',`${nAli}<small> / ${atr.length}</small>`,'atrasos que dependen del cliente'],
-    ['En revisión',cnt[2]+cnt[5],`con ${esc(first(lider().id))} · ${cnt[5]} en el Core · ${plural(vrevN,'vencida')}`],
+    ['En revisión',cnt[2]+cnt[5],`con ${esc(first(lider().id))} · ${cnt[5]} con Alicorp · ${plural(vrevN,'vencida')}`],
     ['Observados',cnt[3]+cnt[6],'devueltos al consultor'],
     ['Actas vencidas',ac('venc'),`${ac('pend')} pendientes · ${ac('tarde')} fuera de plazo`]];
   // Programado vs real por equipo
@@ -561,7 +578,7 @@ function resumen(xs){
   const atr=xs.filter(x=>x.crono.k==='atr');
   const cnt=ST.map((_,i)=>xs.reduce((s,x)=>s+x.cnt[i],0));
   let m='';if(atr.length){const c={};atr.forEach(x=>{const k=CAUSAS[x.causa].l;c[k]=(c[k]||0)+1});m=' ('+Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,v])=>v+' '+k).join(', ')+')'}
-  return `<div class="summary"><b>${xs.length} procesos</b> · <b class="${atr.length?'neg':''}">${atr.length} con retraso</b>${esc(m)} · entregables: ${cnt[3]+cnt[6]} observados, ${cnt[2]} en revisión, ${cnt[5]} en el Core, ${cnt[4]} finalizados</div>`;
+  return `<div class="summary"><b>${xs.length} procesos</b> · <b class="${atr.length?'neg':''}">${atr.length} con retraso</b>${esc(m)} · entregables: ${cnt[3]+cnt[6]} observados, ${cnt[2]} en revisión, ${cnt[5]} con Alicorp, ${cnt[4]} finalizados</div>`;
 }
 function vProcesos(){
   const xs=filtrar();
@@ -588,12 +605,12 @@ function vRevision(){
   const card=o=>{const key=o.p.id+':'+o.t.k;const isC=o.x.e===5;
     return `<div class="card rvcard"><div class="hd"><div style="flex:1;min-width:200px"><span class="mono muted">${esc(o.p.codigo)} · F${o.t.f+1} ${FASES[o.t.f]}</span><h3 style="font-size:15px;margin-top:3px">${esc(o.t.l)}</h3><div class="muted" style="font-size:12.5px">${esc(o.p.nombre)} · Equipo ${o.p.equipo} · ${esc(teamName(o.p.equipo))}</div></div>${!isC&&o.vrev?chip('Revisión vencida','st-l'):chipE(o.x.e)}</div>
     <div class="muted" style="font-size:12.5px">Versión ${o.x.ver} · cargado por ${esc(uName(o.x.por))} el ${fmt(o.x.fc)}${isC?'':(o.tarde?' (fuera de plazo)':' (a tiempo)')+` · revisar hasta <b style="color:${o.vrev?'var(--late)':'inherit'}">${fmt(o.prv)}</b>`}${lks(o.x).length?' · '+lkHTML(o.x):''}${o.x.rdoc?' · '+lkA(o.x.rdoc,'Documento de revisión'):''}</div>
-    ${rv?`<textarea class="inp fw big" id="rv-${o.p.id}-${o.t.k}" data-f="rv" data-key="${key}" placeholder="${isC?'Observaciones del Core (obligatorio si lo observa, o pega abajo el enlace a su documento).':'Observaciones para el consultor (obligatorio si lo observas). Puedes escribir todo lo que necesites.'}">${esc(UI.rvT[key]||'')}</textarea>
-    <input class="inp fw" type="url" id="rvd-${o.p.id}-${o.t.k}" data-f="rvd" data-key="${key}" aria-label="Enlace a un documento de revisión (opcional)" placeholder="${isC?'Enlace al documento del Core (opcional)':'Enlace a un documento de revisión (opcional) · p. ej. el informe generado con IA'}" value="${esc(UI.rvD[key]||'')}">
-    <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">Ver proceso</button>${isC?btn(key,6,'warn','Observado por el Core')+btn(key,4,'ok','Finalizar'):btn(key,3,'warn','Observar y devolver')+btn(key,5,'','Enviar a revisión del Core')+btn(key,4,'ok','Finalizar')}</div>`:`<p class="note" style="margin:0">Solo la Líder de Procesos cambia este estado.</p>`}</div>`};
-  return `<div class="filters"><select class="sel" id="revEq" data-f="revEq" aria-label="Equipo"><option value="all">Todos los equipos</option>${[1,2,3].map(n=>`<option value="${n}" ${UI.revEq==n?'selected':''}>Equipo ${n} · ${esc(teamName(n))}</option>`).join('')}</select><span class="muted" style="font-size:12.5px">${pend.length} por revisar${nv?` · <b style="color:var(--late)">${nv} con la revisión vencida</b>`:''} · ${core.length} en revisión del Core · ${obs.length} observados con los consultores</span></div>
+    ${rv?`<textarea class="inp fw big" id="rv-${o.p.id}-${o.t.k}" data-f="rv" data-key="${key}" placeholder="${isC?'Observaciones de Alicorp (obligatorio si lo observa, o pega abajo el enlace a su documento).':'Observaciones para el consultor (obligatorio si lo observas). Puedes escribir todo lo que necesites.'}">${esc(UI.rvT[key]||'')}</textarea>
+    <input class="inp fw" type="url" id="rvd-${o.p.id}-${o.t.k}" data-f="rvd" data-key="${key}" aria-label="Enlace a un documento de revisión (opcional)" placeholder="${isC?'Enlace al documento de Alicorp (opcional)':'Enlace a un documento de revisión (opcional) · p. ej. el informe generado con IA'}" value="${esc(UI.rvD[key]||'')}">
+    <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">Ver proceso</button>${isC?btn(key,6,'warn','Observado por Alicorp')+btn(key,4,'ok','Finalizar'):btn(key,3,'warn','Observar y devolver')+btn(key,5,'','Enviar a revisión por Alicorp')+btn(key,4,'ok','Finalizar')}</div>`:`<p class="note" style="margin:0">Solo la Líder de Procesos cambia este estado.</p>`}</div>`};
+  return `<div class="filters"><select class="sel" id="revEq" data-f="revEq" aria-label="Equipo"><option value="all">Todos los equipos</option>${[1,2,3].map(n=>`<option value="${n}" ${UI.revEq==n?'selected':''}>Equipo ${n} · ${esc(teamName(n))}</option>`).join('')}</select><span class="muted" style="font-size:12.5px">${pend.length} por revisar${nv?` · <b style="color:var(--late)">${nv} con la revisión vencida</b>`:''} · ${core.length} en revisión por Alicorp · ${obs.length} observados con los consultores</span></div>
   <div class="pgrid">${pend.map(card).join('')||'<div class="card empty" style="grid-column:1/-1">No hay entregables esperando revisión. Cuando un consultor cargue un entregable, aparecerá aquí.</div>'}</div>
-  ${core.length?`<h2 style="font-size:16px;margin-top:6px">En revisión del Core <small class="muted" style="font-weight:400;font-size:12.5px">siguen con ${esc(first(lider().id))} hasta que el Core los apruebe u observe</small></h2><div class="pgrid">${core.map(card).join('')}</div>`:''}
+  ${core.length?`<h2 style="font-size:16px;margin-top:6px">En revisión por Alicorp <small class="muted" style="font-weight:400;font-size:12.5px">siguen con ${esc(first(lider().id))} hasta que Alicorp los apruebe u observe</small></h2><div class="pgrid">${core.map(card).join('')}</div>`:''}
   ${obs.length?`<div class="card"><h2>Observados <small>ya están en la bandeja del equipo para corregir</small></h2><div class="rows" style="gap:8px">${obs.map(o=>`<button class="alert" data-a="open" data-pid="${o.p.id}" data-k="${o.t.k}">${chipE(o.x.e)}<div style="min-width:0"><div class="t">${esc(o.t.l)} · ${esc(o.p.nombre)}</div><div class="m">Lo tiene: Equipo ${o.p.equipo} · ${esc(teamName(o.p.equipo))}${o.x.obs?' · '+esc(o.x.obs.length>140?o.x.obs.slice(0,140)+'…':o.x.obs):''}</div></div></button>`).join('')}</div></div>`:''}`;
 }
 
@@ -736,8 +753,8 @@ function ayudaAvance(){
       <tr><td>${chipE(1)}</td><td>Consultor</td><td class="num">${ST[1].p}</td><td>El equipo lo está trabajando.</td></tr>
       <tr><td>${chipE(2)}</td><td>Consultor, al cargar el enlace</td><td class="num">${ST[2].p}</td><td>Entregado; lo tiene ${esc(first(lider().id))} para revisar.</td></tr>
       <tr><td>${chipE(3)}</td><td>${esc(first(lider().id))} (o un administrador)</td><td class="num">${ST[3].p}</td><td>Revisado con observaciones; vuelve al equipo y baja de ${ST[2].p} a ${ST[3].p} hasta que lo corrijan y lo vuelvan a cargar.</td></tr>
-      <tr><td>${chipE(5)}</td><td>${esc(first(lider().id))}, al pasarlo al Core</td><td class="num">${ST[5].p}</td><td>${esc(first(lider().id))} ya lo revisó y lo envió al Core; sigue en sus manos hasta que el Core lo apruebe u observe.</td></tr>
-      <tr><td>${chipE(6)}</td><td>${esc(first(lider().id))}, con lo que diga el Core</td><td class="num">${ST[6].p}</td><td>El Core pidió cambios; vuelve al equipo para corregir y volver a cargar.</td></tr>
+      <tr><td>${chipE(5)}</td><td>${esc(first(lider().id))}, al pasarlo a Alicorp</td><td class="num">${ST[5].p}</td><td>${esc(first(lider().id))} ya lo revisó y lo envió a Alicorp; sigue en sus manos hasta que Alicorp lo apruebe u observe.</td></tr>
+      <tr><td>${chipE(6)}</td><td>${esc(first(lider().id))}, con lo que diga Alicorp</td><td class="num">${ST[6].p}</td><td>Alicorp pidió cambios; vuelve al equipo para corregir y volver a cargar.</td></tr>
       <tr><td>${chipE(4)}</td><td>${esc(first(lider().id))} (o un administrador)</td><td class="num">${ST[4].p}</td><td>Aprobado. Es lo único que vale el 100%.</td></tr></tbody></table></div>
     <p style="margin:0"><b>3. Avance real del proceso</b> = promedio de los puntos de sus ${n} entregables. Ejemplo: ${ej.map(e=>ST[e].l.toLowerCase()+' ('+ST[e].p+')').join(' + ')} = <b>${ejR}%</b>. Un proceso llega a <b>100%</b> solo cuando sus ${n} entregables están <b>Finalizados</b>.</p>
     <p style="margin:0"><b>¿Qué es cada entregable?</b></p><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${ENTS.map(t=>`<li><b>${esc(t.l)}</b> (F${t.f+1}): ${esc(t.d)}</li>`).join('')}</ul>
@@ -783,6 +800,11 @@ function pEdSave(){const F=UI.pEd;const codigo=F.codigo.trim(),nombre=F.nombre.t
   D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Editó el proceso · '+ch.join(' · ')});
   persist();toast('Proceso actualizado');return true}
 
+/* ---------- Entregables retirados: lo que ya se cargó sigue a la vista (no suma al avance) ---------- */
+const RETIRADOS=[{k:'bpmn',f:1,l:'Diagrama BPMN',dest:'Manual de procedimientos SAP Signavio'}];
+function retHTML(p,i){return RETIRADOS.filter(r=>r.f===i).map(r=>{const x=D.E[p.id+':'+r.k];if(!x||x.unido||!lks(x).length)return '';
+  return `<div class="note" style="margin:0;font-size:12.5px">Antes se cargó aquí un «${esc(r.l)}» (v${x.ver||1}, ${fmt(x.fc)}): ${lkHTML(x)}. Ese entregable ya no se pide y no cuenta en el avance; si corresponde, agrega estos archivos al «${esc(r.dest)}» con «+ Agregar otro archivo» o «✎ Corregir o cambiar enlaces».</div>`}).join('')}
+
 /* ---------- Ficha de proceso (panel lateral) ---------- */
 function vDrawer(){
   const p=proc(UI.drawer);if(!p)return '';
@@ -795,7 +817,7 @@ function vDrawer(){
       const lg=D.log.filter(r=>r.pid==p.id&&r.k===e.t.k).slice().reverse();
       const rdocA=x.rdoc?' '+lkA(x.rdoc,'Documento de la revisión'):'';
       h+=`<div class="ed">${lks(x).length?`<div style="font-size:13px">${lks(x).length>1?`<span class="muted">Archivos cargados (v${x.ver}):</span> `+lkHTML(x):lkHTML(x,'Abrir archivo cargado (v'+x.ver+')')}</div>`:''}
-      ${OBS.includes(x.e)&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>${x.e===6?'Observación del Core (registrada por '+esc(first(lider().id))+')':'Observación de '+esc(first(lider().id))}:</b> ${esc(x.obs)}${rdocA?'\n':''}${rdocA}</div>`:x.rdoc?`<div style="font-size:13px">${rdocA}</div>`:''}
+      ${OBS.includes(x.e)&&x.obs?`<div class="note warn" style="white-space:pre-line"><b>${x.e===6?'Observación de Alicorp (registrada por '+esc(first(lider().id))+')':'Observación de '+esc(first(lider().id))}:</b> ${esc(x.obs)}${rdocA?'\n':''}${rdocA}</div>`:x.rdoc?`<div style="font-size:13px">${rdocA}</div>`:''}
       ${e.vrev?`<div class="note warn">Se cargó el ${fmt(x.fc)} y la revisión debía hacerse hasta el ${fmt(e.prv)}. Este atraso es de IPPB · revisión, no del equipo.</div>`:''}`;
       if(w&&x.ver)h+=UI.fixL&&UI.fixL.key===key?`<div class="doc" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)"><span class="flbl" style="margin:0">Enlaces correctos (v${x.ver}) · no cambia el estado ni la versión; queda en el historial con tu nombre y la hora</span>${UI.fixL.links.map((u,i)=>`<div class="row" style="gap:6px"><input class="inp" style="flex:1;min-width:0" id="fx-l${i}" type="url" aria-label="Enlace ${i+1}" data-f="fixL" data-i="${i}" value="${esc(u)}">${UI.fixL.links.length>1?`<button class="btn sm ghost" data-a="fixLDel" data-i="${i}" aria-label="Quitar enlace ${i+1}">✕</button>`:''}</div>`).join('')}<input class="inp" id="fx-m" data-f="fixLM" aria-label="Por qué lo cambias (opcional)" placeholder="Por qué lo cambias (opcional)" value="${esc(UI.fixL.m||'')}"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><button class="btn sm ghost" data-a="fixLAdd">+ Otro archivo</button><span class="row" style="gap:6px"><button class="btn sm ghost" data-a="fixLX">Cancelar</button><button class="btn sm pri" data-a="fixLY" data-key="${key}">Guardar enlaces</button></span></div></div>`
         :`<button class="btn sm ghost" data-a="fixL" data-key="${key}" style="align-self:flex-start">✎ Corregir o cambiar enlaces</button>`;
@@ -806,13 +828,13 @@ function vDrawer(){
           <span class="muted" style="font-size:11.5px">Se guarda en «${esc(SUBS[e.t.f])}» como ${esc(p.codigo)}_${TOK[e.t.k]}_v${x.ver+1}.</span></div>`:''}
         <div><label for="fl">Enlace al archivo en SharePoint / OneDrive</label><input class="inp" id="fl" type="url" placeholder="https://empresa.sharepoint.com/..." value="${esc(f.link)}" data-f="fl">
           ${(f.mas||[]).map((u,i)=>`<div class="row" style="gap:6px;margin-top:6px"><input class="inp" style="flex:1;min-width:0" type="url" id="flm${i}" aria-label="Archivo adicional ${i+1}" placeholder="Otro archivo · https://..." value="${esc(u)}" data-f="flm" data-i="${i}"><button class="btn sm ghost" data-a="flDel" data-i="${i}" aria-label="Quitar archivo adicional ${i+1}">✕</button></div>`).join('')}
-          <button class="btn sm ghost" data-a="flAdd" style="margin-top:6px">+ Agregar otro archivo${e.t.k==='bpmn'?' (p. ej. el HTML)':''}</button></div>
+          <button class="btn sm ghost" data-a="flAdd" style="margin-top:6px">+ Agregar otro archivo${e.t.k==='desc'?' (p. ej. el .bpmn o el HTML)':''}</button></div>
         <div><label for="ft">Comentario</label><textarea class="inp" id="ft" data-f="ft" placeholder="${OBS.includes(x.e)?'Qué corregiste':'Opcional'}">${esc(f.t)}</textarea></div>
         <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="cancel">Cancelar</button><button class="btn pri" data-a="eSend" data-key="${key}">Cargar y enviar a revisión</button></div>`;
       }else if(x.e===2){
-        h+=rv?`<div><label for="ft">Observaciones para el consultor</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si lo observas. Puedes escribir todo lo que necesites.">${esc(f.t)}</textarea></div><div><label for="frd">Documento de revisión (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="Enlace al informe de revisión, p. ej. el generado con IA" value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn warn" data-a="eTo" data-to="3" data-key="${key}">Observar y devolver al equipo</button><button class="btn" data-a="eTo" data-to="5" data-key="${key}">Enviar a revisión del Core</button><button class="btn ok" data-a="eTo" data-to="4" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión con ${esc(lider().nombre)}.</p>`;
+        h+=rv?`<div><label for="ft">Observaciones para el consultor</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si lo observas. Puedes escribir todo lo que necesites.">${esc(f.t)}</textarea></div><div><label for="frd">Documento de revisión (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="Enlace al informe de revisión, p. ej. el generado con IA" value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn warn" data-a="eTo" data-to="3" data-key="${key}">Observar y devolver al equipo</button><button class="btn" data-a="eTo" data-to="5" data-key="${key}">Enviar a revisión por Alicorp</button><button class="btn ok" data-a="eTo" data-to="4" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión con ${esc(lider().nombre)}.</p>`;
       }else if(x.e===5){
-        h+=rv?`<p class="note" style="margin:0">En revisión del Core. Cuando el Core responda, márcalo como observado (vuelve al equipo) o finalizado.</p><div><label for="ft">Observaciones del Core</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si el Core lo observa (o pega abajo el enlace a su documento).">${esc(f.t)}</textarea></div><div><label for="frd">Documento del Core (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="https://..." value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn warn" data-a="eTo" data-to="6" data-key="${key}">Observado por el Core</button><button class="btn ok" data-a="eTo" data-to="4" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión del Core; lo sigue ${esc(lider().nombre)}.</p>`;
+        h+=rv?`<p class="note" style="margin:0">En revisión por Alicorp. Cuando Alicorp responda, márcalo como observado (vuelve al equipo) o finalizado.</p><div><label for="ft">Observaciones de Alicorp</label><textarea class="inp big" id="ft" data-f="ft" placeholder="Obligatorio si Alicorp lo observa (o pega abajo el enlace a su documento).">${esc(f.t)}</textarea></div><div><label for="frd">Documento de Alicorp (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="https://..." value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn warn" data-a="eTo" data-to="6" data-key="${key}">Observado por Alicorp</button><button class="btn ok" data-a="eTo" data-to="4" data-key="${key}">Finalizar</button></div>`:`<p class="note" style="margin:0">En revisión por Alicorp; lo sigue ${esc(lider().nombre)}.</p>`;
       }else if(x.e===4){
         h+=`<p class="note" style="margin:0">Finalizado: el entregable ya está bien.</p>${rv?`<div><label for="ft">Motivo para reabrir</label><textarea class="inp" id="ft" data-f="ft">${esc(f.t)}</textarea></div><div><label for="frd">Documento de revisión (opcional)</label><input class="inp" id="frd" type="url" data-f="frd" placeholder="https://..." value="${esc(f.rd||'')}"></div><div class="row" style="justify-content:flex-end"><button class="btn sm warn" data-a="eTo" data-to="3" data-key="${key}">Reabrir como observado</button></div>`:''}`;
       }else h+=`<p class="note" style="margin:0">${OBS.includes(x.e)?'Devuelto al equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') para corregir.':'Solo el equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') puede cargar este entregable.'}</p>`;
@@ -846,7 +868,7 @@ function vDrawer(){
     ${I.causa==='ippb_rev'?`<div class="note info">El equipo entregó y el atraso está en la revisión (${I.vrev.map(e=>e.t.s).join(', ')}). No hace falta que el consultor lo justifique.</div>`:''}
     ${V?`<form data-form="desv" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="dvm">Motivo</label><select class="sel fw" id="dvm" data-f="dvMot">${MOTIVOS.map(m=>`<option ${V.motivo===m.m?'selected':''}>${m.m}</option>`).join('')}</select></div><div><label class="flbl" for="dvdp">Depende de</label><select class="sel fw" id="dvdp" data-f="dvDep">${DEPS.map(d=>`<option ${V.dep===d?'selected':''}>${d}</option>`).join('')}</select></div><div><label class="flbl" for="dvf">Fase</label><select class="sel fw" id="dvf" data-f="dvFase">${FASES.map((f,i)=>`<option value="${i}" ${V.fase==i?'selected':''}>F${i+1} · ${f}</option>`).join('')}</select></div></div><div><label class="flbl" for="dvd">Detalle</label><textarea class="inp fw" id="dvd" data-f="dvDet" placeholder="Ej. la sesión se movió del miércoles al jueves; no llegó el BAE del área comercial">${esc(V.det)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="dvX">Cancelar</button><button class="btn pri" type="submit">Guardar motivo</button></div></form>`:''}
     ${I.dv.slice().reverse().map(d=>`<div class="hist"><div class="h"><span class="av sm">${ini(uName(d.autor))}</span><div style="min-width:0">${chip(d.motivo,'e3')} ${chip('Depende de '+(d.dep||MDEP[d.motivo]||'IPPB'),'e0')} <span class="muted">· F${+d.fase+1} · ${esc(first(d.autor))} · ${fmt(d.fecha)}</span><p>${esc(d.det)}</p>${isAdmin()?`<button class="btn sm ghost" data-a="dvDel" data-id="${d.id}" style="color:var(--danger);padding-left:0">Anular este motivo</button>`:''}</div></div></div>`).join('')}
-    ${FASES.map((fn,i)=>{const f=p.fases[i]||{};return `<div class="sect">F${i+1} · ${fn} <span>plan ${fmt(f.ini)} – ${fmt(f.fin)}${f.rev?' · revisión hasta '+fmt(f.rev):''}</span></div><div style="display:flex;flex-direction:column;gap:8px">${FCON.includes(i)?I.es.filter(e=>e.t.f===i).map(entRow).join(''):'<p class="muted" style="margin:0;font-size:12.5px">Aprobación formal del PO según cronograma. No requiere cargar entregable en la plataforma.</p>'}</div>`}).join('')}
+    ${FASES.map((fn,i)=>{const f=p.fases[i]||{};return `<div class="sect">F${i+1} · ${fn} <span>plan ${fmt(f.ini)} – ${fmt(f.fin)}${f.rev?' · revisión hasta '+fmt(f.rev):''}</span></div><div style="display:flex;flex-direction:column;gap:8px">${FCON.includes(i)?I.es.filter(e=>e.t.f===i).map(entRow).join('')+retHTML(p,i):'<p class="muted" style="margin:0;font-size:12.5px">Aprobación formal del PO según cronograma. No requiere cargar entregable en la plataforma.</p>'}</div>`}).join('')}
     ${foldPanel(p,w)}
     <div class="sect">Sesiones y actas <span>${I.ses.length} registradas · ${I.sesP.length} pendientes o vencidas</span>${w&&!S?'<button class="btn sm" data-a="sesAdd">+ Agregar sesión</button>':''}</div>
     ${S?`<form data-form="ses" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px"><div class="three"><div><label class="flbl" for="sft">Tipo</label><select class="sel fw" id="sft" data-f="sfT">${Object.entries(SES).map(([k,l])=>`<option value="${k}" ${S.t===k?'selected':''}>${l}</option>`).join('')}</select></div><div><label class="flbl" for="sff">Fecha</label><input class="inp fw" id="sff" type="date" data-f="sfF" value="${esc(S.f)}"></div><div><label class="flbl" for="sfh">Hora de fin</label><input class="inp fw" id="sfh" type="time" data-f="sfH" value="${esc(S.h)}"></div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sesX">Cancelar</button><button class="btn pri" type="submit">Agregar</button></div></form>`:''}
@@ -1093,7 +1115,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-23 13:44:51';
+const BUILD='2026-11-23 16:03:31';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
@@ -1165,7 +1187,7 @@ async function runSetup(){const S=UI.setup;
 
 /* ---------- Carpeta del proceso en SharePoint ---------- */
 const SUBS=['01 AS IS','02 TO BE','03 Funcional','04 Validación','Actas'];
-const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'PROCEDIMIENTOS',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
+const TOK={ficha:'FICHA',mhal:'HALLAZGOS',bpmn:'BPMN',desc:'MANUAL-SIGNAVIO',mcon:'CONSIDERACIONES',mreq:'REQUERIMIENTOS',aval:'ACTA-VF'};
 async function loadFold(pid){UI.fold[pid]={k:'loading'};render();
   try{UI.fold[pid]=await OMEGA_SP.folderInfo(proc(pid),SUBS)}catch(e){UI.fold[pid]={k:'error',msg:errTxt(e)}}render()}
 function foldPanel(p,w){if(!hasFiles())return '';const F=UI.fold[p.id];
@@ -1202,15 +1224,15 @@ function setE(key,e,t,extra,doc){const [pid,k]=key.split(':');const x=D.E[key];c
 function lastRev(key){const [pid,k]=key.split(':');for(let i=D.log.length-1;i>=0;i--){const r=D.log[i];if(r.pid==pid&&r.k===k&&r.prev&&!r.undone)return r}return null}
 function revertE(key){const r=lastRev(key);if(!r)return;const [pid,k]=key.split(':');const x=D.E[key];Object.assign(x,r.prev);if(!('mas' in r.prev))x.mas=[];if(!('rdoc' in r.prev))x.rdoc='';r.undone=true;
   D.log.push({id:uid(),pid:+pid,k,fecha:HOY,ts:Date.now(),autor:UI.as,de:r.a,a:x.e,t:'Revirtió «'+r.t.split('\n')[0]+'» ('+first(r.autor)+', '+fmtTs(r.ts)+'). Vuelve a '+ST[x.e].l+'.'});persist();toast(ENT[k].s+': cambio revertido, vuelve a '+ST[x.e].l)}
-// to: 3 observado (Jenny) · 4 finalizado · 5 en revisión del Core · 6 observado por el Core
+// to: 3 observado (Jenny) · 4 finalizado · 5 en revisión por Alicorp · 6 observado por Alicorp
 function review(key,to,t,rd){
   const x=D.E[key];const [pid,k]=key.split(':');const p=proc(pid);t=(t||'').trim();rd=(rd||'').trim();
-  if(OBS.includes(to)&&!t&&!rd){toast(to===6?'Escribe las observaciones del Core o pega el enlace a su documento':'Escribe la observación para el consultor');return false}
+  if(OBS.includes(to)&&!t&&!rd){toast(to===6?'Escribe las observaciones de Alicorp o pega el enlace a su documento':'Escribe la observación para el consultor');return false}
   if(rd&&!okUrl(rd)){toast('El enlace del documento de revisión debe empezar con https://');return false}
   const eq='Equipo '+p.equipo+' ('+teamName(p.equipo)+')';
-  const txt={3:'Observado y devuelto a '+eq+(t?':\n'+t:''),6:'Observado por el Core y devuelto a '+eq+(t?':\n'+t:''),5:'Pasó a revisión del Core'+(t?': '+t:''),4:'Finalizado'+(t?': '+t:'')}[to];
+  const txt={3:'Observado y devuelto a '+eq+(t?':\n'+t:''),6:'Observado por Alicorp y devuelto a '+eq+(t?':\n'+t:''),5:'Pasó a revisión por Alicorp'+(t?': '+t:''),4:'Finalizado'+(t?': '+t:'')}[to];
   setE(key,to,txt,{obs:OBS.includes(to)?t:'',rdoc:rd||(to===5?x.rdoc||'':'')},rd);
-  toast({3:ENT[k].s+' observado · ahora lo tienen '+teamName(p.equipo),6:ENT[k].s+' observado por el Core · ahora lo tienen '+teamName(p.equipo),5:ENT[k].s+' en revisión del Core',4:ENT[k].s+' finalizado'}[to]);return true}
+  toast({3:ENT[k].s+' observado · ahora lo tienen '+teamName(p.equipo),6:ENT[k].s+' observado por Alicorp · ahora lo tienen '+teamName(p.equipo),5:ENT[k].s+' en revisión por Alicorp',4:ENT[k].s+' finalizado'}[to]);return true}
 function findSes(sid){for(const pid in D.ses){const s=D.ses[pid].find(x=>x.id===sid);if(s)return {pid:+pid,s}}return null}
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a;
