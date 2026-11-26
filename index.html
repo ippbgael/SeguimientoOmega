@@ -368,7 +368,7 @@ let MODE='demo';
 function persist(){if(MODE==='sp'){if(window.OMEGA_SP)window.OMEGA_SP.schedule(D)}else{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}}
 let D=null;
 let curSp=1;
-const UI={bajH:{},as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fdep:'all',teq:'all',tsp:'1',tini:'ini',meq:'all',msp:'all',
+const UI={bajH:{},tbaja:'inc',as:'',rol:'',q:'',feq:'all',fsp:'all',fst:'all',fcr:'all',fmo:'all',fdep:'all',teq:'all',tsp:'1',tini:'ini',meq:'all',msp:'all',
   exp:{1:true},drawer:null,edit:null,form:null,sesF:null,sesEd:null,dvF:null,relF:null,mrel:{a:'',b:'',nota:''},misF:'activos',revEq:'all',hlp:{},rvD:{},rvT:{},
   inv:{nombre:'',id:'',rol:'Consultor',eq:'1'},ren:null,toast:'',confirmReset:false,anOpen:false,sync:{k:'ok',msg:''},fold:{},up:null};
 function start(data,asId){D=norm(data);curSp=(D.SP.find(s=>s.ini<=HOY&&HOY<=s.fin)||D.SP[0]).n;UI.tsp=String(curSp);setAs(asId);
@@ -409,9 +409,9 @@ const canReview=()=>isAdmin()||(UI.rol==='PM'&&D.cfg.pmRevisa);
 const PA=()=>D.P.filter(p=>!p.baja);
 // Baja de un proceso: «des» desestimado o «uni» unificado en otro proceso (p.baja.con). Las bajas antiguas sin tipo son desestimados.
 const bTipo=p=>p.baja&&p.baja.tipo==='uni'?'uni':'des';
-const BTIPO={des:{l:'Desestimado',c:'e0'},uni:{l:'Unificado',c:'e5'}};
+const BTIPO={des:{l:'Desestimado',c:'e0'},uni:{l:'Fusionado',c:'e2'}};
 const bDest=p=>p.baja&&p.baja.con?proc(p.baja.con):null;
-const bajaLbl=p=>{if(!p.baja)return '';const d=bDest(p);return bTipo(p)==='uni'?'Unificado en '+(d?d.codigo+' · '+d.nombre:'otro proceso'):'Desestimado'};
+const bajaLbl=p=>{if(!p.baja)return '';const d=bDest(p);return bTipo(p)==='uni'?'Fusionado en '+(d?d.codigo+' · '+d.nombre:'otro proceso'):'Desestimado'};
 const absorbe=pid=>D.P.filter(q=>q.baja&&bTipo(q)==='uni'&&q.baja.con==pid);
 const canRel=()=>isLider()||UI.rol==='Consultor';
 // Administrador (soporte de la plataforma): puede revertir cargas, relaciones, desvíos y sesiones. La Líder también.
@@ -419,11 +419,11 @@ const isAdmin=()=>isLider()||!!meU().admin;
 const relBtns=r=>`${isAdmin()&&r.est!=='Confirmado'?`<button class="btn sm" data-a="relOk" data-id="${r.id}">Confirmar</button>`:''}${isAdmin()&&r.est==='Confirmado'?`<button class="btn sm ghost" data-a="relUn" data-id="${r.id}">↶ Volver a por confirmar</button>`:''}${isAdmin()||r.autor===UI.as?`<button class="btn sm ghost" data-a="relDel" data-id="${r.id}" style="color:var(--danger)">Quitar</button>`:''}`;
 
 // Avance programado (propuesta): lineal por días dentro de cada fase del cronograma.
-function lin(a,b){if(!a||!b||HOY<a)return 0;if(HOY>=b)return 100;return Math.round((dias(a,HOY)+1)/(dias(a,b)+1)*100)}
+function lin(a,b,h){h=h||HOY;if(!a||!b||h<a)return 0;if(h>=b)return 100;return Math.round((dias(a,h)+1)/(dias(a,b)+1)*100)}
 // venc = atraso del equipo (no entregó a tiempo). vrev = entregado, pero la revisión pasó su plazo (atraso de IPPB · revisión).
 function eInfo(p,t){const x=E(p.id,t.k);const f=p.fases[t.f]||{};
   const prv=x.e===2&&x.fc?mx(f.rev||f.fin||x.fc,addD(x.fc,+D.cfg.revDias||0)):'';
-  return {t,x,f,exp:lin(f.ini,f.fin),prv,
+  return {t,x,f,exp:lin(f.ini,f.fin,p.baja&&p.baja.fecha),prv,
     venc:!!f.fin&&f.fin<HOY&&TEAM.includes(x.e),
     vrev:!!prv&&prv<HOY,
     tarde:!!(x.fc1&&f.fin&&x.fc1>f.fin)}}
@@ -440,7 +440,7 @@ function sEst(s){const c=s.correo&&s.actaI&&s.actaP;const pl=sPlazo(s);const now
 function pInfo(p){
   const es=ENTS.map(t=>eInfo(p,t));
   const real=avg(es.map(e=>ST[e.x.e].p)),esp=avg(es.map(e=>e.exp));
-  const venc=p.baja?[]:es.filter(e=>e.venc),vrev=p.baja?[]:es.filter(e=>e.vrev);const fin=es.every(e=>e.x.e===4);
+  const pausa=p.baja||p.stb;const venc=pausa?[]:es.filter(e=>e.venc),vrev=pausa?[]:es.filter(e=>e.vrev);const fin=es.every(e=>e.x.e===4);
   const cnt=ST.map((_,i)=>es.filter(e=>e.x.e===i).length);
   const fi=FASES.findIndex((_,i)=>es.some(e=>e.t.f===i&&e.x.e!==4));
   const etapa=fi<0?'Cerrado':'F'+(fi+1)+' · '+FASES[fi];
@@ -448,7 +448,7 @@ function pInfo(p){
   const atr=venc.length>0||vrev.length>0;
   const causa=!atr?null:venc.length?(ult?(ult.dep==='Alicorp'?'alicorp':'ippb_eq'):'sin'):'ippb_rev';
   const motivo=!atr?'':causa==='ippb_rev'?'Revisión pendiente':causa==='sin'?'Sin justificar':ult.motivo;
-  const crono=p.baja?{k:'baja',l:BTIPO[bTipo(p)].l,c:BTIPO[bTipo(p)].c}:fin?{k:'fin',l:'Finalizado',c:'e4'}:atr?{k:'atr',l:'Atrasado',c:'st-b'}:HOY<p.ini?{k:'pi',l:'Por iniciar',c:'e0'}:{k:'plazo',l:'En plazo',c:'ok'};
+  const crono=p.baja?{k:'baja',l:BTIPO[bTipo(p)].l,c:BTIPO[bTipo(p)].c}:p.stb?{k:'stb',l:'En stand-by',c:'e5'}:fin?{k:'fin',l:'Finalizado',c:'e4'}:atr?{k:'atr',l:'Atrasado',c:'st-b'}:HOY<p.ini?{k:'pi',l:'Por iniciar',c:'e0'}:{k:'plazo',l:'En plazo',c:'ok'};
   const q=[];if((cnt[2]+cnt[5]))q.push(first(lider().id)+' · '+(cnt[2]+cnt[5])+' por revisar');if((cnt[3]+cnt[6]))q.push('Equipo '+p.equipo+' · '+(cnt[3]+cnt[6])+' por corregir');
   const quien=q.length?q.join(' / '):fin?'—':'Equipo '+p.equipo;
   const ses=(D.ses[p.id]||[]).map(s=>({s,st:sEst(s)}));
@@ -491,7 +491,7 @@ function motivoRows(atr){
 function actasOf(xs){return xs.flatMap(x=>x.ses.map(o=>({p:x.p,...o})))}
 
 /* ---------- Tablero ---------- */
-function tabData(){return PA().filter(p=>(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).map(p=>({p,...pInfo(p)}))}
+function tabData(){return D.P.filter(p=>UI.tbaja!=='exc'||!p.baja).filter(p=>(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).map(p=>({p,...pInfo(p)}))}
 function vTablero(){
   const allF=tabData();
   const base=UI.tini==='ini'?allF.filter(x=>x.p.ini<=HOY):allF;
@@ -535,7 +535,8 @@ function vTablero(){
     <select class="sel" id="teq" data-f="teq" aria-label="Equipo">${o('all',UI.teq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.teq,'Equipo '+n+' · '+teamName(n))).join('')}</select>
     <select class="sel" id="tsp" data-f="tsp" aria-label="Sprint">${o('all',UI.tsp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.tsp,'Sprint '+s.n+' · '+fmt(s.ini)+' – '+fmt(s.fin))).join('')}</select>
     <div class="seg" role="group" aria-label="Procesos que cuentan en el avance"><button data-a="tini" data-v="ini" aria-pressed="${UI.tini==='ini'}">Solo iniciados</button><button data-a="tini" data-v="all" aria-pressed="${UI.tini==='all'}">Todos</button></div>
-    <span class="muted" style="font-size:12.5px">${allF.length} procesos en el filtro</span>
+    <div class="seg" role="group" aria-label="Desestimados y fusionados en el avance"><button data-a="tbaja" data-v="inc" aria-pressed="${UI.tbaja!=='exc'}" title="Siguen en las cifras con el avance que tenían al darlos de baja">Con bajas</button><button data-a="tbaja" data-v="exc" aria-pressed="${UI.tbaja==='exc'}" title="Quita de las cifras los desestimados y fusionados">Sin bajas</button></div>
+    <span class="muted" style="font-size:12.5px">${allF.length} procesos en el filtro${allF.filter(x=>x.p.baja).length?' · '+allF.filter(x=>x.p.baja).length+' dados de baja':''}</span>
     <button class="btn pri" data-a="export" style="margin-left:auto">⤓ Exportar reporte (Excel)</button>
   </div>
   ${ayudaAvance()}
@@ -564,17 +565,17 @@ function vTablero(){
 /* ---------- Desestimados y unificados: siguen a la vista con su motivo e historial ---------- */
 const histHTML=lg=>lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)} · ${esc(r.k?(ENT[r.k]?ENT[r.k].s:'Entregable retirado'):'Proceso')}</span><p>${esc(r.t)}</p></div></div>`).join('')||'<div class="note">Todavía no hay movimientos.</div>';
 function bajasCard(){
-  const L=D.P.filter(p=>p.baja&&(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).sort((a,b)=>(b.baja.fecha||'').localeCompare(a.baja.fecha||''));
-  if(!L.length)return '';
-  const nU=L.filter(p=>bTipo(p)==='uni').length;
-  return `<div class="card"><h2>Procesos desestimados y unificados <small>${plural(L.length-nU,'desestimado','desestimados')} · ${plural(nU,'unificado','unificados')} · no cuentan en el avance, pero no se borran</small></h2><div class="bjl">${L.map(p=>{
-    const I=pInfo(p),t=bTipo(p),d=bDest(p),op=!!UI.bajH[p.id];
+  const L=D.P.filter(p=>(p.baja||p.stb)&&(UI.teq==='all'||p.equipo==UI.teq)&&(UI.tsp==='all'||p.sprint==UI.tsp)).sort((a,b)=>((b.baja||b.stb).fecha||'').localeCompare((a.baja||a.stb).fecha||''));
+  const nU=L.filter(p=>p.baja&&bTipo(p)==='uni').length,nS=L.filter(p=>!p.baja).length,nD=L.length-nU-nS;
+  if(!L.length)return `<div class="card"><h2>Desestimados, fusionados y en stand-by</h2><div class="empty">Ningún proceso desestimado, fusionado ni en stand-by en este filtro.</div></div>`;
+  return `<div class="card"><h2>Desestimados, fusionados y en stand-by <small>${plural(nD,'desestimado','desestimados')} · ${plural(nU,'fusionado','fusionados')} · ${nS} en stand-by · no se borra nada</small></h2><div class="bjl">${L.map(p=>{
+    const I=pInfo(p),S=!p.baja,B=p.baja||p.stb,t=bTipo(p),d=bDest(p),op=!!UI.bajH[p.id];const ch=S?chip('En stand-by','e5'):chip(BTIPO[t].l,BTIPO[t].c);
     const lg=D.log.filter(r=>r.pid==p.id).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
-    return `<div class="bj"><div class="row" style="gap:10px;align-items:flex-start;flex-wrap:wrap">${chip(BTIPO[t].l,BTIPO[t].c)}<div style="flex:1;min-width:220px">
+    return `<div class="bj"><div class="row" style="gap:10px;align-items:flex-start;flex-wrap:wrap">${ch}<div style="flex:1;min-width:220px">
       <button class="lnk" data-a="open" data-pid="${p.id}">${esc(p.nombre)}</button>
-      <div class="muted" style="font-size:12.5px;margin-top:2px">${esc(p.codigo)} · S${p.sprint} · Equipo ${p.equipo} · ${t==='uni'?'unificado':'desestimado'} el ${fmt(p.baja.fecha)} por ${esc(uName(p.baja.por))}${t==='uni'?' · en '+(d?`<button class="lnk" data-a="open" data-pid="${d.id}">${esc(d.codigo+' · '+d.nombre)}</button>`:'otro proceso'):''}</div>
-      <p style="margin:6px 0 0;font-size:13px"><b>Motivo:</b> ${esc(p.baja.motivo)}</p>
-      <div class="muted" style="font-size:12px;margin-top:4px">Entregables: ${I.es.filter(e=>e.x.ver).length} de ${ENTS.length} cargados · ${I.cnt[4]} finalizados · avance real ${I.real}%</div>
+      <div class="muted" style="font-size:12.5px;margin-top:2px">${esc(p.codigo)} · S${p.sprint} · Equipo ${p.equipo} · ${S?'en stand-by desde':t==='uni'?'fusionado':'desestimado'} el ${fmt(B.fecha)} por ${esc(uName(B.por))}${!S&&t==='uni'?' · en '+(d?`<button class="lnk" data-a="open" data-pid="${d.id}">${esc(d.codigo+' · '+d.nombre)}</button>`:'otro proceso'):''}</div>
+      <p style="margin:6px 0 0;font-size:13px"><b>Motivo:</b> ${esc(B.motivo)}</p>
+      <div class="muted" style="font-size:12px;margin-top:4px">Entregables: ${I.es.filter(e=>e.x.ver).length} de ${ENTS.length} cargados · ${I.cnt[4]} finalizados · avance real ${I.real}% / programado ${I.esp}%${S?'':' (congelado al darlo de baja)'}</div>
       <button class="btn sm ghost" data-a="bajaH" data-pid="${p.id}" aria-expanded="${op}" style="margin-top:6px;padding-left:0">${op?'▾ Ocultar historial':'▸ Ver historial ('+lg.length+')'}</button>
       ${op?`<div class="hist" style="margin-top:6px">${histHTML(lg)}</div>`:''}</div></div></div>`}).join('')}</div></div>`;
 }
@@ -594,7 +595,7 @@ function filtrosHTML(){
     <select class="sel" id="feq" data-f="feq" aria-label="Equipo">${o('all',UI.feq,'Todos los equipos')}${[1,2,3].map(n=>o(n,UI.feq,'Equipo '+n+' · '+teamName(n))).join('')}</select>
     <select class="sel" id="fsp" data-f="fsp" aria-label="Sprint">${o('all',UI.fsp,'Todos los sprints')}${D.SP.map(s=>o(s.n,UI.fsp,'Sprint '+s.n)).join('')}</select>
     <select class="sel" id="fst" data-f="fst" aria-label="Estado de entregable">${o('all',UI.fst,'Cualquier estado')}${ST.map((s,i)=>o(i,UI.fst,'Con entregables '+s.l.toLowerCase())).join('')}</select>
-    <select class="sel" id="fcr" data-f="fcr" aria-label="Cronograma">${o('all',UI.fcr,'Todo el cronograma')}${o('atr',UI.fcr,'Atrasados')}${o('plazo',UI.fcr,'En plazo')}${o('pi',UI.fcr,'Por iniciar')}${o('fin',UI.fcr,'Finalizados')}${o('baja',UI.fcr,'Desestimados y unificados')}</select>
+    <select class="sel" id="fcr" data-f="fcr" aria-label="Cronograma">${o('all',UI.fcr,'Todo el cronograma')}${o('atr',UI.fcr,'Atrasados')}${o('plazo',UI.fcr,'En plazo')}${o('pi',UI.fcr,'Por iniciar')}${o('fin',UI.fcr,'Finalizados')}${o('stb',UI.fcr,'En stand-by')}${o('baja',UI.fcr,'Desestimados y fusionados')}</select>
     <select class="sel" id="fdep" data-f="fdep" aria-label="De quién depende">${o('all',UI.fdep,'Cualquier responsable')}${Object.entries(CAUSAS).map(([k,c])=>o(k,UI.fdep,'Depende de: '+c.l)).join('')}</select>
     <select class="sel" id="fmo" data-f="fmo" aria-label="Motivo de desvío">${o('all',UI.fmo,'Cualquier motivo')}${MOTIVOS.map(m=>o(m.m,UI.fmo,m.m)).join('')}${o('sin',UI.fmo,'Sin justificar')}</select>
     ${any?'<button class="btn sm ghost" data-a="clrF">Limpiar filtros</button>':''}
@@ -606,6 +607,13 @@ function resumen(xs){
   let m='';if(atr.length){const c={};atr.forEach(x=>{const k=CAUSAS[x.causa].l;c[k]=(c[k]||0)+1});m=' ('+Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,v])=>v+' '+k).join(', ')+')'}
   return `<div class="summary"><b>${xs.length} procesos</b> · <b class="${atr.length?'neg':''}">${atr.length} con retraso</b>${esc(m)} · entregables: ${cnt[3]+cnt[6]} observados, ${cnt[2]} en revisión, ${cnt[5]} con Alicorp, ${cnt[4]} finalizados</div>`;
 }
+function fusForm(){const G=UI.fus;
+  return `<form data-form="fus" class="card" style="display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--e2-bar)"><b style="font-size:15px">Fusionar procesos</b>
+  <p class="muted" style="margin:0;font-size:12.5px">El primero se cierra y queda dentro del segundo. No se borra nada: el primero sigue a la vista en el tablero con su avance congelado, su motivo y su historial, y la fusión se puede deshacer desde su ficha.</p>
+  <div class="grid g2" style="gap:10px"><div><label class="flbl" for="fu-a">Proceso que se cierra</label><select class="sel fw" id="fu-a" data-f="fus" data-k="a"><option value="">Elige…</option>${procOpts(G.a,G.b)}</select></div>
+  <div><label class="flbl" for="fu-b">Proceso que se queda (lo absorbe)</label><select class="sel fw" id="fu-b" data-f="fus" data-k="b"><option value="">Elige…</option>${procOpts(G.b,G.a)}</select></div></div>
+  <div><label class="flbl" for="fu-m">¿Por qué se fusionan? (obligatorio)</label><textarea class="inp fw" id="fu-m" data-f="fus" data-k="m" placeholder="Ej. Alicorp confirmó que es el mismo flujo; acordado en la sesión del 25 nov">${esc(G.m)}</textarea></div>
+  <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="fusX">Cancelar</button><button class="btn pri" type="submit">Fusionar</button></div></form>`}
 function vProcesos(){
   const xs=filtrar();
   const rows=xs.map(x=>{const p=x.p;
@@ -615,7 +623,7 @@ function vProcesos(){
     ${FCON.map(i=>`<td><div class="cells">${x.es.filter(e=>e.t.f===i).map(e=>cellE(p,e)).join('')}</div></td>`).join('')}
     <td class="num">${x.esp}%</td><td class="num"><b>${x.real}%</b></td><td class="num" style="white-space:nowrap">${dtxt(x.desv)}</td>
     <td>${chip(x.crono.l,x.crono.c)}${x.crono.k==='atr'?`<div style="font-size:11.5px;margin-top:4px;white-space:nowrap" class="${x.causa==='sin'?'neg':'muted'}">${esc(CAUSAS[x.causa].l)}${x.causa!=='sin'&&x.causa!=='ippb_rev'?' · '+esc(x.motivo):''}</div>`:''}</td></tr>`}).join('');
-  const nuevo=isAdmin()?(UI.pEd&&UI.pEd.nuevo?pEdForm():`<div class="row" style="justify-content:flex-end"><button class="btn sm" data-a="pNew">+ Nuevo proceso (administrador)</button></div>`):'';
+  const nuevo=isAdmin()?(UI.pEd&&UI.pEd.nuevo?pEdForm():`<div class="row" style="justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn sm" data-a="fusOn">⇄ Fusionar procesos</button><button class="btn sm" data-a="pNew">+ Nuevo proceso (administrador)</button></div>`+(UI.fus?fusForm():'')):'';
   return nuevo+filtrosHTML()+resumen(xs)+legend()+`<div class="tblwrap"><table><thead><tr><th>Proceso · código N4</th><th>Sprint</th><th>Equipo</th><th>Etapa actual</th><th>Con quién</th>${FCON.map(i=>`<th>F${i+1} ${FCORTA[i]}</th>`).join('')}<th>Programado</th><th>Real</th><th>Desvío</th><th>Cronograma</th></tr></thead><tbody>${rows||`<tr><td colspan="${9+FCON.length}" class="empty">Ningún proceso coincide con los filtros.</td></tr>`}</tbody></table></div><p class="muted" style="margin:0;font-size:12px">Haz clic en un entregable para ver su archivo, su estado y su historial. ↗ = archivo cargado.</p>`;
 }
 
@@ -785,7 +793,7 @@ function ayudaAvance(){
     <p style="margin:0"><b>3. Avance real del proceso</b> = promedio de los puntos de sus ${n} entregables. Ejemplo: ${ej.map(e=>ST[e].l.toLowerCase()+' ('+ST[e].p+')').join(' + ')} = <b>${ejR}%</b>. Un proceso llega a <b>100%</b> solo cuando sus ${n} entregables están <b>Finalizados</b>.</p>
     <p style="margin:0"><b>¿Qué es cada entregable?</b></p><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${ENTS.map(t=>`<li><b>${esc(t.l)}</b> (F${t.f+1}): ${esc(t.d)}</li>`).join('')}</ul>
     <p style="margin:0"><b>4. Avance programado</b> = lo que ya debería estar hecho hoy según el cronograma: dentro de cada fase avanza parejo día a día (a mitad de la fase, 50%; al pasar su fecha de fin, 100%), y se promedia igual que el real.</p>
-    <p style="margin:0"><b>5. Desvío</b> = real − programado, en puntos. Negativo = va atrasado. Equipo, sprint y total son el promedio de sus procesos (los dados de baja no cuentan).</p>
+    <p style="margin:0"><b>5. Desvío</b> = real − programado, en puntos. Negativo = va atrasado. Equipo, sprint y total son el promedio de sus procesos. Los desestimados y fusionados cuentan con el avance que tenían al darlos de baja (congelado), salvo que elijas «Sin bajas»; los procesos en stand-by no se marcan como atrasados.</p>
   </div></details>`}
 
 /* ---------- Editar / crear proceso (administrador) ---------- */
@@ -866,7 +874,7 @@ function vDrawer(){
       }else h+=`<p class="note" style="margin:0">${OBS.includes(x.e)?'Devuelto al equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') para corregir.':'Solo el equipo '+p.equipo+' ('+esc(teamName(p.equipo))+') puede cargar este entregable.'}</p>`;
       const lr=isAdmin()&&lastRev(key);
       if(lr)h+=UI.cRev===key?`<div class="note warn" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:180px">¿Revertir «${esc(lr.t.split('\n')[0])}»? Vuelve a ${ST[lr.prev.e].l}${lr.prev.link!==x.link?(lr.prev.link?' con la versión anterior del archivo':' sin archivo cargado'):''}. Queda en el historial.</span><button class="btn sm warn" data-a="eRevY" data-key="${key}">Sí, revertir</button><button class="btn sm ghost" data-a="eRevN">No</button></div>`
-        :`<button class="btn sm ghost" data-a="eRev" data-key="${key}" style="align-self:flex-start">↶ Revertir último cambio (administrador)</button>`;
+        :`<button class="btn sm" data-a="eRev" data-key="${key}" style="align-self:flex-start">↶ Deshacer «${esc(lr.t.split(String.fromCharCode(10))[0].slice(0,60))}» · vuelve a ${ST[lr.prev.e].l}</button>`;
       h+=`<div class="hist">${lg.map(r=>`<div class="h"><span class="av sm">${ini(uName(r.autor))}</span><div style="min-width:0"><b>${esc(uName(r.autor))}</b> <span class="muted">· ${r.ts?fmtTs(r.ts):fmt(r.fecha)}</span> ${chipE(r.a)}${r.undone?' '+chip('Revertido','e0'):''}<p>${esc(r.t)}</p>${r.doc?`<p style="margin-top:2px">${lkA(r.doc,'Documento de revisión')}</p>`:''}</div></div>`).join('')}</div></div>`;
     }
     return h+'</div>'};
@@ -882,11 +890,13 @@ function vDrawer(){
   <div class="dh"><div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="mono" style="background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:99px">${esc(p.codigo)}</span>${chip(I.crono.l,I.crono.c)}${causaChip(I)}</div><h2>${esc(p.nombre)}</h2></div><button class="btn sm" data-a="close" aria-label="Cerrar">✕</button></div>
   <div class="dbody">
     <div class="meta"><div><small>Sprint · plan</small><b>S${p.sprint} · ${fmt(p.ini)} – ${fmt(p.fin)}</b></div><div><small>Equipo</small><b>Equipo ${p.equipo} · ${esc(teamName(p.equipo))}</b></div><div><small>Process Owner</small><b>${esc(p.po)}</b></div><div><small>Key User</small><b>${esc(p.ku)}</b></div><div><small>Etapa actual</small><b>${esc(I.etapa)}</b></div><div><small>Con quién está</small><b>${esc(I.quien)}</b></div></div>
-    ${p.baja?`<div class="note bad"><b>${bTipo(p)==='uni'?'Proceso unificado':'Proceso desestimado'}</b> el ${fmt(p.baja.fecha)} por ${esc(uName(p.baja.por))}.${bTipo(p)==='uni'?` Se unificó en ${bDest(p)?`<button class="lnk" data-a="open" data-pid="${bDest(p).id}">${esc(bDest(p).codigo+' · '+bDest(p).nombre)}</button>`:'otro proceso'}.`:''} Motivo: ${esc(p.baja.motivo)}<br>No cuenta en el avance, los atrasos, la revisión ni el reporte. Su historial sigue abajo.</div>`:''}
-    ${absorbe(p.id).length?`<div class="note"><b>Este proceso absorbe:</b> ${absorbe(p.id).map(q=>`<button class="lnk" data-a="open" data-pid="${q.id}">${esc(q.codigo+' · '+q.nombre)}</button>`).join(', ')}</div>`:''}
+    ${p.stb&&!p.baja?`<div class="note"><b>Proceso en stand-by</b> desde el ${fmt(p.stb.fecha)} (${esc(uName(p.stb.por))}). Motivo: ${esc(p.stb.motivo)}<br>No se marca como atrasado mientras esté en pausa.</div>`:''}
+    ${p.baja?`<div class="note bad"><b>${bTipo(p)==='uni'?'Proceso fusionado':'Proceso desestimado'}</b> el ${fmt(p.baja.fecha)} por ${esc(uName(p.baja.por))}.${bTipo(p)==='uni'?` Se fusionó en ${bDest(p)?`<button class="lnk" data-a="open" data-pid="${bDest(p).id}">${esc(bDest(p).codigo+' · '+bDest(p).nombre)}</button>`:'otro proceso'}.`:''} Motivo: ${esc(p.baja.motivo)}<br>No se marca como atrasado ni pasa por revisión. En el tablero sigue con el avance que tenía (puedes quitarlo con «Sin bajas»). Su historial sigue abajo.</div>`:''}
+    ${absorbe(p.id).length?`<div class="note"><b>Aquí se fusionaron:</b> ${absorbe(p.id).map(q=>`<button class="lnk" data-a="open" data-pid="${q.id}">${esc(q.codigo+' · '+q.nombre)}</button>`).join(', ')}</div>`:''}
     ${isAdmin()?(UI.pEd&&UI.pEd.id==p.id?pEdForm()
-      :UI.bajaF&&UI.bajaF.pid==p.id?`<form data-form="baja" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--danger)"><b style="font-size:14px">Dar de baja este proceso</b><p class="muted" style="margin:0;font-size:12.5px">Deja de contar en el avance, los atrasos y el reporte, pero sigue a la vista en el tablero con su historial. No se borra nada: se puede reactivar después.</p><div class="seg" role="group" aria-label="Tipo de baja"><button type="button" data-a="bajaT" data-v="des" aria-pressed="${UI.bajaF.t!=='uni'}">Desestimado</button><button type="button" data-a="bajaT" data-v="uni" aria-pressed="${UI.bajaF.t==='uni'}">Unificado con otro proceso</button></div>${UI.bajaF.t==='uni'?`<div><label class="flbl" for="bj-c">¿En qué proceso se unifica? (obligatorio)</label><select class="sel fw" id="bj-c" data-f="bajaC"><option value="">Elige el proceso que lo absorbe…</option>${procOpts(UI.bajaF.con,p.id)}</select></div>`:''}<div><label class="flbl" for="bj-m">${UI.bajaF.t==='uni'?'¿Por qué se unifica?':'¿Por qué se desestima?'} (obligatorio)</label><textarea class="inp fw" id="bj-m" data-f="bajaM" placeholder="Ej. Alicorp confirmó que el proceso se absorbe en FTP.25.15.005; acordado en la sesión del 17 nov">${esc(UI.bajaF.m)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="bajaX">Cancelar</button><button class="btn warn" type="submit">Dar de baja</button></div></form>`
-      :`<div class="row" style="gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:12px">Administrador:</span>${p.baja?`<button class="btn sm" data-a="pAlta" data-pid="${p.id}">↺ Reactivar proceso</button>`:`<button class="btn sm" data-a="pEdit" data-pid="${p.id}">✎ Editar proceso y fechas</button><button class="btn sm ghost" data-a="pBaja" data-pid="${p.id}" style="color:var(--danger)">Dar de baja…</button>`}</div>`):''}
+      :UI.bajaF&&UI.bajaF.pid==p.id?`<form data-form="baja" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--danger)"><b style="font-size:14px">${UI.bajaF.t==='uni'?'Fusionar este proceso con otro':'Desestimar este proceso'}</b><p class="muted" style="margin:0;font-size:12.5px">${UI.bajaF.t==='uni'?'Este proceso se cierra y queda dentro del que elijas. ':''}Su avance queda congelado tal como está y sigue a la vista en el tablero con su historial. No se borra nada: se puede deshacer después.</p><div class="seg" role="group" aria-label="Tipo de baja"><button type="button" data-a="bajaT" data-v="des" aria-pressed="${UI.bajaF.t!=='uni'}">Desestimado</button><button type="button" data-a="bajaT" data-v="uni" aria-pressed="${UI.bajaF.t==='uni'}">Fusionado con otro proceso</button></div>${UI.bajaF.t==='uni'?`<div><label class="flbl" for="bj-c">¿Con qué proceso se fusiona? Este queda dentro de ese (obligatorio)</label><select class="sel fw" id="bj-c" data-f="bajaC"><option value="">Elige el proceso que se queda…</option>${procOpts(UI.bajaF.con,p.id)}</select></div>`:''}<div><label class="flbl" for="bj-m">${UI.bajaF.t==='uni'?'¿Por qué se fusionan?':'¿Por qué se desestima?'} (obligatorio)</label><textarea class="inp fw" id="bj-m" data-f="bajaM" placeholder="Ej. Alicorp confirmó que el proceso se absorbe en FTP.25.15.005; acordado en la sesión del 17 nov">${esc(UI.bajaF.m)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="bajaX">Cancelar</button><button class="btn warn" type="submit">${UI.bajaF.t==='uni'?'Fusionar':'Desestimar'}</button></div></form>`
+      :UI.stbF&&UI.stbF.pid==p.id?`<form data-form="stb" class="doc" style="padding:12px;display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--e5-bar)"><b style="font-size:14px">Poner en stand-by</b><p class="muted" style="margin:0;font-size:12.5px">El proceso queda en pausa: sigue contando en el avance, pero no se marca como atrasado mientras esté en stand-by. Se quita con un clic.</p><div><label class="flbl" for="sb-m">¿Por qué queda en stand-by? (obligatorio)</label><textarea class="inp fw" id="sb-m" data-f="stbM" placeholder="Ej. Alicorp pausó el proceso hasta definir el alcance">${esc(UI.stbF.m)}</textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="stbX">Cancelar</button><button class="btn" type="submit">Poner en stand-by</button></div></form>`
+      :`<div class="row" style="gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:12px">Administrador:</span>${p.baja?`<button class="btn sm" data-a="pAlta" data-pid="${p.id}">↺ Deshacer ${bTipo(p)==='uni'?'fusión':'desestimación'} (reactivar proceso)</button>`:`<button class="btn sm" data-a="pEdit" data-pid="${p.id}">✎ Editar proceso y fechas</button>${p.stb?`<button class="btn sm" data-a="stbOff" data-pid="${p.id}">▶ Quitar stand-by</button>`:`<button class="btn sm" data-a="stbOn" data-pid="${p.id}">⏸ Poner en stand-by…</button>`}<button class="btn sm" data-a="pBaja" data-t="uni" data-pid="${p.id}">⇄ Fusionar con otro proceso…</button><button class="btn sm ghost" data-a="pBaja" data-t="des" data-pid="${p.id}" style="color:var(--danger)">Desestimar…</button>`}</div>`):''}
     <div class="doc" style="padding:12px 14px"><div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:8px"><b>Avance real ${I.real}% · programado hoy ${I.esp}%</b>${dtxt(I.desv)}</div>${dual(I.real,I.esp)}</div>
     ${ayudaAvance()}
     ${!w&&!p.baja?`<p class="note" style="margin:0">${UI.rol==='Consultor'?'Este proceso es del equipo '+p.equipo+'. Puedes verlo, pero no editarlo.':UI.rol==='Solo lectura'||UI.rol==='PM'?'Vista de consulta.':''}</p>`:''}
@@ -1147,7 +1157,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-24 12:44:08';
+const BUILD='2026-11-26 08:50:52';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
@@ -1312,14 +1322,20 @@ document.addEventListener('click',e=>{
     case 'pNew':UI.bajaF=null;pEdStart(null);render();break;
     case 'pEdit':UI.bajaF=null;pEdStart(proc(el.dataset.pid));render();break;
     case 'pEdX':UI.pEd=null;render();break;
-    case 'pBaja':UI.pEd=null;UI.bajaF={pid:+el.dataset.pid,m:'',t:'des',con:''};render();break;
+    case 'pBaja':UI.pEd=null;UI.stbF=null;UI.bajaF={pid:+el.dataset.pid,m:'',t:el.dataset.t||'des',con:''};render();break;
+    case 'stbOn':UI.pEd=null;UI.bajaF=null;UI.stbF={pid:+el.dataset.pid,m:''};render();break;
+    case 'stbX':UI.stbF=null;render();break;
+    case 'stbOff':{const p=proc(el.dataset.pid);if(!p||!p.stb)break;const b=p.stb;delete p.stb;
+      D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Quitó el stand-by (estaba en pausa desde el '+fmt(b.fecha)+': '+b.motivo+')'});persist();toast('El proceso ya no está en stand-by');break}
+    case 'fusOn':UI.fus={a:'',b:'',m:''};render();break;
+    case 'fusX':UI.fus=null;render();break;
     case 'bajaT':if(UI.bajaF){UI.bajaF.t=el.dataset.v;render()}break;
     case 'bajaH':UI.bajH[el.dataset.pid]=!UI.bajH[el.dataset.pid];render();break;
     case 'bajaX':UI.bajaF=null;render();break;
-    case 'pAlta':{const p=proc(el.dataset.pid);if(!p||!p.baja)break;const b=p.baja;const lbl=bajaLbl(p);const d=bDest(p);delete p.baja;
+    case 'pAlta':{const p=proc(el.dataset.pid);if(!p||!p.baja)break;UI.cAlta=null;const b=p.baja;const lbl=bajaLbl(p);const d=bDest(p);delete p.baja;
       D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Reactivó el proceso (estaba '+lbl.charAt(0).toLowerCase()+lbl.slice(1)+' desde el '+fmt(b.fecha)+': '+b.motivo+')'});
-      if(d)D.log.push({id:uid(),pid:d.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Se reactivó '+p.codigo+' · '+p.nombre+'; ya no está unificado en este proceso'});
-      persist();toast('Proceso reactivado');break}
+      if(d)D.log.push({id:uid(),pid:d.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Se deshizo la fusión de '+p.codigo+' · '+p.nombre+'; vuelve a ser un proceso aparte'});
+      persist();toast(d?'Fusión deshecha: '+p.codigo+' vuelve a ser un proceso aparte':'Proceso reactivado');break}
     case 'fixL':{const x=D.E[el.dataset.key];UI.fixL={key:el.dataset.key,links:lks(x).length?lks(x):['']};render();break}
     case 'fixLX':UI.fixL=null;render();break;
     case 'fixLAdd':if(UI.fixL){UI.fixL.links.push('');render()}break;
@@ -1332,6 +1348,7 @@ document.addEventListener('click',e=>{
     case 'exp':UI.exp[el.dataset.n]=!UI.exp[el.dataset.n];render();break;
     case 'misF':UI.misF=el.dataset.v;render();break;
     case 'tini':UI.tini=el.dataset.v;render();break;
+    case 'tbaja':UI.tbaja=el.dataset.v;render();break;
     case 'export':exportar();break;
     case 'login':OMEGA_SP.login();break;
     case 'forgot':{const L=UI.lg;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(L.e.trim())){L.msg='Escribe tu correo arriba y vuelve a pulsar «Olvidé mi contraseña».';L.err=true;scLogin();break}
@@ -1374,7 +1391,7 @@ document.addEventListener('input',e=>{
   else if(f==='dvDet')UI.dvF.det=el.value;else if(f==='sfF')UI.sesF.f=el.value;else if(f==='sfH')UI.sesF.h=el.value;
   else if(f==='relN')UI.relF.n=el.value;else if(f==='mrN')UI.mrel.nota=el.value;
   else if(f==='pe'&&UI.pEd)UI.pEd[el.dataset.k]=el.value;else if(f==='pef'&&UI.pEd)UI.pEd.fases[+el.dataset.i][el.dataset.k]=el.value;
-  else if(f==='bajaM'&&UI.bajaF)UI.bajaF.m=el.value;else if(f==='bajaC'&&UI.bajaF)UI.bajaF.con=el.value;else if(f==='fixL'&&UI.fixL)UI.fixL.links[+el.dataset.i]=el.value;else if(f==='fixLM'&&UI.fixL)UI.fixL.m=el.value;
+  else if(f==='bajaM'&&UI.bajaF)UI.bajaF.m=el.value;else if(f==='bajaC'&&UI.bajaF)UI.bajaF.con=el.value;else if(f==='stbM'&&UI.stbF)UI.stbF.m=el.value;else if(f==='fus'&&UI.fus)UI.fus[el.dataset.k]=el.value;else if(f==='fixL'&&UI.fixL)UI.fixL.links[+el.dataset.i]=el.value;else if(f==='fixLM'&&UI.fixL)UI.fixL.m=el.value;
 });
 document.addEventListener('change',e=>{
   const el=e.target;const f=el.dataset&&el.dataset.f;if(!f)return;
@@ -1428,9 +1445,19 @@ document.addEventListener('submit',e=>{
     if(uni&&!d){toast('Elige en qué proceso se unifica');return}
     if(!m){toast(uni?'Escribe por qué se unifica':'Escribe por qué se desestima');return}const p=proc(B.pid);
     p.baja=uni?{tipo:'uni',con:d.id,motivo:m,fecha:HOY,por:UI.as}:{tipo:'des',motivo:m,fecha:HOY,por:UI.as};UI.bajaF=null;
-    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:uni?'Unificó el proceso en '+d.codigo+' · '+d.nombre+': '+m:'Desestimó el proceso: '+m});
-    if(d)D.log.push({id:uid(),pid:d.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Absorbe el proceso '+p.codigo+' · '+p.nombre+' (unificado): '+m});
-    persist();toast(uni?'Proceso unificado en '+d.codigo:'Proceso desestimado');return}
+    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:uni?'Fusionó el proceso en '+d.codigo+' · '+d.nombre+': '+m:'Desestimó el proceso: '+m});
+    if(d)D.log.push({id:uid(),pid:d.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Se fusionó aquí el proceso '+p.codigo+' · '+p.nombre+': '+m});
+    persist();toast(uni?'Proceso fusionado en '+d.codigo:'Proceso desestimado');return}
+  if(k==='stb'){const B=UI.stbF;const m=(B.m||'').trim();if(!m){toast('Escribe por qué queda en stand-by');return}const p=proc(B.pid);
+    p.stb={motivo:m,fecha:HOY,por:UI.as};UI.stbF=null;
+    D.log.push({id:uid(),pid:p.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Puso el proceso en stand-by: '+m});persist();toast('Proceso en stand-by');return}
+  if(k==='fus'){const G=UI.fus;const a=proc(G.a),b=proc(G.b);
+    if(!a||!b){toast('Elige los dos procesos');return}if(a.id===b.id){toast('Elige dos procesos distintos');return}
+    const m=(G.m||'').trim();if(!m){toast('Escribe por qué se fusionan');return}
+    a.baja={tipo:'uni',con:b.id,motivo:m,fecha:HOY,por:UI.as};UI.fus=null;
+    D.log.push({id:uid(),pid:a.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Fusionó el proceso en '+b.codigo+' · '+b.nombre+': '+m});
+    D.log.push({id:uid(),pid:b.id,k:null,fecha:HOY,ts:Date.now(),autor:UI.as,a:0,t:'Se fusionó aquí el proceso '+a.codigo+' · '+a.nombre+': '+m});
+    persist();toast(a.codigo+' se fusionó en '+b.codigo);return}
   if(k==='mrel'){const M=UI.mrel;if(addRel(M.a,M.b,M.nota)){UI.mrel={a:'',b:'',nota:''};render()}}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.drawer!=null){UI.drawer=null;UI.edit=null;render()}});
