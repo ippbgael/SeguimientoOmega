@@ -332,7 +332,7 @@ const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','di
 /* ---------- Utilidades ---------- */
 const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-const HOY=iso(new Date());
+let HOY=iso(new Date()); // se recalcula en cada render: una pestaña abierta de un día para otro usa la fecha de hoy
 const dt=s=>new Date(s+'T12:00:00');
 const addD=(s,n)=>{const x=dt(s);x.setDate(x.getDate()+n);return iso(x)};
 const fmt=s=>{if(!s)return '—';const x=dt(s);return x.getDate()+' '+MES[x.getMonth()]};
@@ -1071,7 +1071,7 @@ async function exportarSimple(){
 }
 
 /* ---------- Render ---------- */
-function render(){
+function render(){HOY=iso(new Date());
   if(!D){const a=document.activeElement;const fid=a&&a.id;document.getElementById('app').innerHTML=(UI.screen||'')+(UI.toast?`<div class="toast" role="status">${esc(UI.toast)}</div>`:'');if(fid){const el=document.getElementById(fid);if(el)el.focus()}return}
   const a=document.activeElement;const fid=a&&a.id;const sel=a&&typeof a.selectionStart==='number'?[a.selectionStart,a.selectionEnd]:null;
   const dsc=document.querySelector('.dbody');const dTop=dsc?dsc.scrollTop:0;
@@ -1156,7 +1156,7 @@ function scSetup(){const me=OMEGA_SP.email();UI.setup=UI.setup||{rows:USERS0.map
 /* ---------- Aviso de nueva versión ----------
    build.ps1 pone aquí la fecha y hora de cada armado. La página publicada revisa cada 3 minutos
    (y al volver a la pestaña) si el index.html de GitHub trae otra versión; si es así, muestra el aviso. */
-const BUILD='2026-11-27 17:24:36';
+const BUILD='2026-11-27 17:30:02';
 function watchVersion(){
   if(BUILD.charAt(0)==='_')return; // demo: no aplica
   let shown=false;
